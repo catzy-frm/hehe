@@ -10,23 +10,17 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container:
+      image: node:20-alpine
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-
-      - name: nodejs
-        uses: actions/setup-node@v2
-        with:
-          node-version: '20'  
-
-      - name: apt
+      - name: package
         run: |
-          sudo apt update -y
-          sudo apt install -y ffmpeg neofetch sox imagemagick
-
+          apk update
+          apk add ffmpeg neofetch sox imagemagick
       - name: git clone
         run: git clone ${{ secrets.sc1 }}
-
       - name: npm install
         run: |
           cd wa1
@@ -37,7 +31,6 @@ jobs:
           curl 'https://raw.githubusercontent.com/wppconnect-team/wa-proto/refs/heads/main/dist/index.d.ts' | sed 's/waproto/proto/g' > 'whatsapp/WAProto/index.d.ts'
           curl 'https://raw.githubusercontent.com/wppconnect-team/wa-proto/refs/heads/main/WAProto.proto' | sed 's/waproto/proto/g' > 'whatsapp/WAProto/WAProto.proto'
           echo "{}" >> whatsapp/WAProto/package.json
-
       - name: run node
         run: |
           cd wa1
