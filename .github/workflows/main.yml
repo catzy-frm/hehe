@@ -18,7 +18,7 @@ jobs:
       - name: package
         run: |
           apk update
-          apk add ffmpeg sox imagemagick git python
+          apk add ffmpeg sox imagemagick git python3
       - name: git clone
         run: git clone ${{ secrets.sc1 }}
       - name: npm install
