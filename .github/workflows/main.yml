@@ -11,15 +11,16 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: node:20-alpine
+      image: node:lts-alpine
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
       - name: package
         run: |
+          echo "https://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
           apk update
-          apk add --update --no-cache ffmpeg sox imagemagick git python3
-          apk add --update --no-cache make g++ jpeg-dev cairo-dev giflib-dev pango-dev libtool autoconf automake
+          apk add --update --no-cache ffmpeg sox imagemagick git neofetch
+          apk add --update --no-cache python3 make g++ jpeg-dev cairo-dev giflib-dev pango-dev libtool autoconf automake
       - name: git clone
         run: git clone ${{ secrets.sc1 }}
       - name: npm install
