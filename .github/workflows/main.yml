@@ -19,8 +19,9 @@ jobs:
           apk update
           apk add --update --no-cache ffmpeg sox imagemagick git neofetch lscpu \
             python3 make g++ jpeg-dev cairo-dev giflib-dev pango-dev libtool autoconf automake openssh
-          wget https://github.com/owenthereal/upterm/releases/download/v0.17.0/upterm_linux_arm64.tar.gz
+          wget https://github.com/owenthereal/upterm/releases/download/v0.17.0/uptermd_linux_amd64.tar.gz
           tar zxvf *gz
+          ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -C "your_email@example.com"
       - name: git clone
         run: git clone ${{ secrets.sc1 }}
       - name: modul
