@@ -21,7 +21,7 @@ jobs:
             python3 make g++ jpeg-dev cairo-dev giflib-dev pango-dev libtool autoconf automake openssh
           wget https://github.com/owenthereal/upterm/releases/download/v0.17.0/uptermd_linux_amd64.tar.gz
           tar zxvf *gz
-          mkdir /home
+          mkdir ~/.ssh
           ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -C "your_email@example.com"
       - name: git clone
         run: git clone ${{ secrets.sc1 }}
