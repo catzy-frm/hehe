@@ -34,7 +34,7 @@ jobs:
           chmod +x bantuan/ytdlp
       - name: run
         run: |
-          ./uptermd host --accept
+          ./uptermd
           cd wa1
           node ghact.js
 
