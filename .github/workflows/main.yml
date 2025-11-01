@@ -10,17 +10,17 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container:
-      image: node:lts-alpine
     steps:
-      - name: package
-        run: |
-          echo "https://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
-          apk update
-          apk add --update --no-cache ffmpeg sox imagemagick git neofetch lscpu curl \
-            python3 make g++ jpeg-dev cairo-dev giflib-dev pango-dev libtool autoconf automake sudo
+      - name: nodejs
+        uses: actions/setup-node@v2
+        with:
+          node-version: '20'
       - name: upterm
         uses: owenthereal/action-upterm@v1
+      - name: package
+        run: |
+          sudo apt update -y
+          sudo apt install -y ffmpeg neofetch sox imagemagick
       - name: git clone
         run: git clone ${{ secrets.sc1 }}
       - name: modul
