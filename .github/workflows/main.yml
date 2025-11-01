@@ -26,13 +26,11 @@ jobs:
       - name: modul
         run: |
           cd wa1
-          npm i -g pm2
-          yarn install
           wget -O bantuan/ytdlp "https://github.com/yt-dlp/yt-dlp/releases/download/2025.10.22/yt-dlp"
           chmod +x bantuan/ytdlp
       - name: run
         run: |
-          upterm host --accept
+          upterm
           cd wa1
           node ghact.js
 
