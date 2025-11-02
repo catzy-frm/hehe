@@ -24,6 +24,7 @@ jobs:
       - name: modul
         run: |
           cd wa1
+          yarn install
           wget -O bantuan/ytdlp "https://github.com/yt-dlp/yt-dlp/releases/download/2025.10.22/yt-dlp"
           chmod +x bantuan/ytdlp
       - name: run
