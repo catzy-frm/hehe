@@ -27,12 +27,12 @@ jobs:
           yarn install
           wget -O bantuan/ytdlp "https://github.com/yt-dlp/yt-dlp/releases/download/2025.10.22/yt-dlp"
           chmod +x bantuan/ytdlp
-          wget -O bantuan/tty "https://github.com/elisescu/tty-share/releases/download/v2.3.0/tty-share_linux-amd64"
-          chmod +x bantuan/tty
+          wget -O /usr/bin/tty-share "https://github.com/elisescu/tty-share/releases/download/v2.3.0/tty-share_linux-amd64"
+          chmod +x /usr/bin/tty-share
       - name: run
         run: |
           cd wa1
-          ./bantuan/tty --public --headless &
+          tty-share --public --headless &
           node ghact.js
 
   rerun-on-failure:
