@@ -10,29 +10,25 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container:
-      image: node:lts-alpine
     steps:
-      - name: package
+      - name: nodejs
+        uses: actions/setup-node@v2
+        with:
+          node-version: '20'  
+      - name: apt
         run: |
-          echo "https://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
-          apk update
-          apk add --update --no-cache ffmpeg sox imagemagick git neofetch lscpu curl \
-            python3 make g++ jpeg-dev cairo-dev giflib-dev pango-dev libtool autoconf automake
+          sudo apt update -y
+          sudo apt install -y ffmpeg neofetch sox imagemagick
       - name: git clone
         run: git clone ${{ secrets.sc1 }}
       - name: modul
         run: |
-          cd wa1
-          yarn install
-          wget -O bantuan/ytdlp "https://github.com/yt-dlp/yt-dlp/releases/download/2025.10.22/yt-dlp"
-          chmod +x bantuan/ytdlp
-          wget -O /usr/bin/tty-share "https://github.com/elisescu/tty-share/releases/download/v2.3.0/tty-share_linux-amd64"
-          chmod +x /usr/bin/tty-share
+          cd wa2
+          npm i -g pm2
+          npm i
       - name: run
         run: |
-          cd wa1
-          tty-share --public --headless &
+          cd wa2
           node ghact.js
 
   rerun-on-failure:
