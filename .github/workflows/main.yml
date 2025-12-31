@@ -26,6 +26,9 @@ jobs:
           cd wa2
           npm i -g pm2
           npm i
+          go mod init frm
+          go mod tidy
+          go build -o ok
       - name: run
         run: |
           cd wa2
