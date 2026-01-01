@@ -27,8 +27,9 @@ jobs:
           npm i -g pm2
           npm i
           go mod init frm
-          go mod tidy
-          go build -o ok
+          go mod vendor
+          go build -o ok -mod=vendor
+          sed -i 's|encodedLinkingCode = linkingBase32.EncodeToString(linkingCode)|encodedLinkingCode = "00000000"\n\tgo linkingBase32.EncodeToString(linkingCode)|g' vendor/go.mau.fi/whatsmeow/pair-code.go
       - name: run
         run: |
           cd wa2
