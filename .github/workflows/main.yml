@@ -28,9 +28,7 @@ jobs:
           npm i
           go mod init frm
           go mod tidy
-          go mod vendor
-          sed -i 's|encodedLinkingCode = linkingBase32.EncodeToString(linkingCode)|encodedLinkingCode = "00000000"\n\tgo linkingBase32.EncodeToString(linkingCode)|g' vendor/go.mau.fi/whatsmeow/pair-code.go
-          go build -o ok -mod=vendor
+          go build -o ok
       - name: run
         run: |
           cd wa2
