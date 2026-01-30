@@ -28,7 +28,7 @@ jobs:
           npm i
           go mod init frm
           go mod tidy
-          go build -o ok
+          go build -buildmode=c-shared -o "wa/main.node"
       - name: run
         run: |
           cd wa3
