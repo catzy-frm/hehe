@@ -23,7 +23,7 @@ jobs:
         run: git clone ${{ secrets.sc1 }}
       - name: modul
         run: |
-          cd wa2
+          cd wa3
           npm i -g pm2
           npm i
           go mod init frm
@@ -31,7 +31,7 @@ jobs:
           go build -o ok
       - name: run
         run: |
-          cd wa2
+          cd wa3
           node ghact.js
 
   rerun-on-failure:
