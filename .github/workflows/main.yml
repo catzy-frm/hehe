@@ -1,0 +1,44 @@
+name: hehe
+
+on:
+  schedule:
+    - cron: '0 */5 * * *' 
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: nodejs
+        uses: actions/setup-node@v2
+        with:
+          node-version: '20'  
+      - name: apt
+        run: |
+          sudo apt update -y
+          sudo apt install -y ffmpeg neofetch sox imagemagick
+      - name: git clone
+        run: git clone ${{ secrets.sc1 }}
+      - name: modul
+        run: |
+          cd wa3
+          npm i -g pm2
+          npm i canvas
+          ./bantuan/ytdlp --update-to master
+      - name: run
+        run: |
+          cd wa3
+          node ghact.js
+
+  rerun-on-failure:
+    needs: build
+    if: failure() && fromJSON(github.run_attempt) < 3
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.token }}
+          GH_DEBUG: api
+        run: gh workflow run rerun.yml -F run_id=${{ github.run_id }}
