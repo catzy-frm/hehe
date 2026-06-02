@@ -12,7 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
-      # ─── SETUP ──────────────────────────────────────────────────
       - name: nodejs
         uses: actions/setup-node@v2
         with:
@@ -33,16 +32,14 @@ jobs:
           npm i
           ./bantuan/ytdlp --update-to master
 
-      # ─── TAILSCALE ──────────────────────────────────────────────
       - name: Connect Tailscale
         uses: tailscale/github-action@v2
         with:
           oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_ID }}
-          oauth-client-secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
+          oauth-secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
           tags: tag:ci
           hostname: wa-bot-${{ github.run_id }}
 
-      # ─── SINYAL KE ACTION 1 ─────────────────────────────────────
       - name: Sinyal ke Instance Lama
         run: |
           echo "🔍 Mencari instance lama..."
@@ -96,7 +93,6 @@ jobs:
             sleep 5
           done
 
-      # ─── RUN ────────────────────────────────────────────────────
       - name: run
         run: |
           cat > /tmp/bot_manager.js << 'JSEOF'
@@ -147,7 +143,6 @@ jobs:
 
           node /tmp/bot_manager.js
 
-  # ─── RERUN ON FAILURE ───────────────────────────────────────────
   rerun-on-failure:
     needs: build
     if: failure() && fromJSON(github.run_attempt) < 3
