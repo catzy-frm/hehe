@@ -68,11 +68,11 @@ jobs:
 
           echo "📡 Mencari di Tailscale..."
           OLD_IP=""
-          for i in $(seq 1 24); do
+          for i in $(seq 1 15); do
             OLD_IP=$(tailscale status 2>/dev/null \
               | grep "wa-bot-${OLD_RUN_ID}" | awk '{print $1}')
             [ -n "$OLD_IP" ] && { echo "📡 Ketemu di $OLD_IP"; break; }
-            echo "⏳ [$i/24] Belum ketemu, tunggu 5 detik..."
+            echo "⏳ [$i/15] Belum ketemu, tunggu 5 detik..."
             sleep 5
           done
 
@@ -96,7 +96,7 @@ jobs:
       - name: run
         run: |
           cat > /tmp/bot_manager.js << 'JSEOF'
-          const { spawn } = require('child_process')
+          const { fork } = require('child_process')
           const http = require('http')
           const path = require('path')
 
@@ -105,9 +105,9 @@ jobs:
 
           function startBot() {
             console.log('🤖 Menjalankan ghact.js...')
-            state.bot = spawn('node', ['ghact.js'], {
+            state.bot = fork('ghact.js', [], {
               cwd: path.join(WORKSPACE, 'wa3'),
-              stdio: ['inherit', 'inherit', 'inherit', 'ipc']
+              stdio: 'inherit'   // IPC otomatis terbentuk
             })
             state.bot.on('close', code => {
               if (state.graceful) return
