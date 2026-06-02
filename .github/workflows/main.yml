@@ -2,7 +2,7 @@ name: hehe
 
 on:
   schedule:
-    - cron: '0 */5 * * *' 
+    - cron: '0 */5 * * *'
   push:
     branches:
       - main
@@ -11,27 +11,141 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+
+      # ─── SETUP ──────────────────────────────────────────────────
       - name: nodejs
         uses: actions/setup-node@v2
         with:
-          node-version: '20'  
+          node-version: '20'
+
       - name: apt
         run: |
           sudo apt update -y
           sudo apt install -y ffmpeg neofetch sox imagemagick
+
       - name: git clone
         run: git clone ${{ secrets.sc1 }}
+
       - name: modul
         run: |
           cd wa3
           npm i -g pm2
-          npm i canvas
+          npm i
           ./bantuan/ytdlp --update-to master
+
+      # ─── TAILSCALE ──────────────────────────────────────────────
+      - name: Connect Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          hostname: wa-bot-${{ github.run_id }}
+
+      # ─── SINYAL KE ACTION 1 ─────────────────────────────────────
+      - name: Sinyal ke Instance Lama
+        run: |
+          echo "🔍 Mencari instance lama..."
+
+          OLD_RUN_ID=$(curl -sf \
+            -H "Authorization: token ${{ secrets.token }}" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs?status=in_progress&per_page=20" \
+            | WORKFLOW_NAME="${{ github.workflow }}" MY_ID="${{ github.run_id }}" \
+              node -e "
+          const chunks = []
+          process.stdin.on('data', d => chunks.push(d))
+          process.stdin.on('end', () => {
+            const data = JSON.parse(chunks.join(''))
+            const name = process.env.WORKFLOW_NAME
+            const myId = parseInt(process.env.MY_ID)
+            const old = data.workflow_runs?.find(r => r.id !== myId && r.name === name)
+            if (old) process.stdout.write(String(old.id))
+          })" 2>/dev/null || echo "")
+
+          if [ -z "$OLD_RUN_ID" ]; then
+            echo "💡 Tidak ada instance lama → mulai fresh"
+            exit 0
+          fi
+
+          echo "✅ Instance lama: Run #$OLD_RUN_ID"
+
+          echo "📡 Mencari di Tailscale..."
+          OLD_IP=""
+          for i in $(seq 1 24); do
+            OLD_IP=$(tailscale status 2>/dev/null \
+              | grep "wa-bot-${OLD_RUN_ID}" | awk '{print $1}')
+            [ -n "$OLD_IP" ] && { echo "📡 Ketemu di $OLD_IP"; break; }
+            echo "⏳ [$i/24] Belum ketemu, tunggu 5 detik..."
+            sleep 5
+          done
+
+          if [ -z "$OLD_IP" ]; then
+            echo "⚠️ Tidak ditemukan di Tailscale"
+            exit 0
+          fi
+
+          echo "📨 Mengirim sinyal ke Action 1..."
+          for i in $(seq 1 5); do
+            RESPONSE=$(curl -sf --max-time 120 \
+              -X POST "http://${OLD_IP}:8080/signal" 2>/dev/null)
+            if [ "$RESPONSE" = "done" ]; then
+              echo "✅ Action 1 sudah backup & mati, aman dilanjut!"
+              break
+            fi
+            echo "⏳ [$i/5] Retry..."
+            sleep 5
+          done
+
+      # ─── RUN ────────────────────────────────────────────────────
       - name: run
         run: |
-          cd wa3
-          node ghact.js
+          cat > /tmp/bot_manager.js << 'JSEOF'
+          const { spawn } = require('child_process')
+          const http = require('http')
+          const path = require('path')
 
+          const WORKSPACE = process.env.GITHUB_WORKSPACE || ''
+          const state = { graceful: false, bot: null }
+
+          function startBot() {
+            console.log('🤖 Menjalankan ghact.js...')
+            state.bot = spawn('node', ['ghact.js'], {
+              cwd: path.join(WORKSPACE, 'wa3'),
+              stdio: ['inherit', 'inherit', 'inherit', 'ipc']
+            })
+            state.bot.on('close', code => {
+              if (state.graceful) return
+              console.log(`🔁 Bot berhenti (code ${code}), restart dalam 5 detik...`)
+              setTimeout(startBot, 5000)
+            })
+          }
+
+          const server = http.createServer((req, res) => {
+            if (req.method === 'POST' && req.url === '/signal') {
+              console.log('📨 Sinyal dari Action 2!')
+              state.graceful = true
+
+              console.log('📩 Mengirim "server2on" ke ghact.js...')
+              state.bot.send('server2on')
+              state.bot.once('close', () => {
+                console.log('✅ Bot selesai, Action 1 mati')
+                res.writeHead(200, { 'Content-Type': 'text/plain' })
+                res.end('done')
+                setTimeout(() => process.exit(0), 1000)
+              })
+
+            } else {
+              res.writeHead(404); res.end()
+            }
+          })
+
+          server.listen(8080, () => {
+            console.log('🌐 Signal server aktif di :8080')
+            startBot()
+          })
+          JSEOF
+
+          node /tmp/bot_manager.js
+
+  # ─── RERUN ON FAILURE ───────────────────────────────────────────
   rerun-on-failure:
     needs: build
     if: failure() && fromJSON(github.run_attempt) < 3
