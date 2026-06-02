@@ -37,7 +37,9 @@ jobs:
       - name: Connect Tailscale
         uses: tailscale/github-action@v2
         with:
-          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_ID }}
+          oauth-client-secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
+          tags: tag:ci
           hostname: wa-bot-${{ github.run_id }}
 
       # ─── SINYAL KE ACTION 1 ─────────────────────────────────────
