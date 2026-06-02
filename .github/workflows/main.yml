@@ -123,7 +123,7 @@ jobs:
 
               console.log('📩 mematikan...')
               //state.bot.send('server2on')
-              await execSync("pm2 kill")
+              state.bot.kill('SIGTERM');
               state.bot.once('close', () => {
                 console.log('✅ Bot selesai, Action 1 mati')
                 res.writeHead(200, { 'Content-Type': 'text/plain' })
