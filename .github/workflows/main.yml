@@ -17,12 +17,6 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Cache apt
-        uses: actions/cache@v4
-        with:
-          path: /var/cache/apt/archives
-          key: ${{ runner.os }}-apt-ffmpeg-sox-imagemagick
-
       - name: apt
         run: |
           sudo apt update -y
@@ -31,20 +25,11 @@ jobs:
       - name: git clone
         run: git clone ${{ secrets.sc1 }}
 
-      - name: Cache node_modules
-        id: cache-nm
-        uses: actions/cache@v4
-        with:
-          path: wa3/node_modules
-          key: ${{ runner.os }}-wa3-${{ hashFiles('wa3/package-lock.json') }}
-
       - name: modul
         run: |
           cd wa3
           npm i -g pm2
-          if [ "${{ steps.cache-nm.outputs.cache-hit }}" != "true" ]; then
-            npm i
-          fi
+          npm i
           ./bantuan/ytdlp --update-to master
 
       - name: Connect Tailscale
@@ -112,7 +97,6 @@ jobs:
         run: |
           cd wa3
           node ghact.js
-
   rerun-on-failure:
     needs: build
     if: failure() && fromJSON(github.run_attempt) < 3
