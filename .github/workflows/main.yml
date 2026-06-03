@@ -10,6 +10,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: /home/runner
     steps:
 
       - name: nodejs
@@ -35,8 +38,8 @@ jobs:
         id: cache-nm
         uses: actions/cache/restore@v4
         with:
-          path: wa3/node_modules
-          key: ${{ runner.os }}-wa3-${{ hashFiles('wa3/package-lock.json') }}
+          path: /home/runner/wa3/node_modules
+          key: ${{ runner.os }}-wa3-${{ hashFiles('/home/runner/wa3/package-lock.json') }}
 
       - name: Install module
         run: |
@@ -50,8 +53,8 @@ jobs:
         if: steps.cache-nm.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
-          path: wa3/node_modules
-          key: ${{ runner.os }}-wa3-${{ hashFiles('wa3/package-lock.json') }}
+          path: /home/runner/wa3/node_modules
+          key: ${{ runner.os }}-wa3-${{ hashFiles('/home/runner/wa3/package-lock.json') }}
 
       - name: Connect Tailscale
         uses: tailscale/github-action@v2
@@ -116,8 +119,10 @@ jobs:
 
       - name: run
         run: |
+          echo "runner:oke" | sudo chpasswd
           cd wa3
           node ghact.js
+
   rerun-on-failure:
     needs: build
     if: failure() && fromJSON(github.run_attempt) < 3
