@@ -19,16 +19,17 @@ jobs:
       - name: nodejs
         uses: actions/setup-node@v2
         with:
-          node-version: '20'
+          node-version: '22'
 
-      - name: Setup root access        # ← fix permission /root
+      - name: Setup root access
         working-directory: /home/runner
         run: chmod 755 /root
 
       - name: tool
         run: |
           apt update -y
-          apt install -y ffmpeg neofetch sox imagemagick
+          apt install -y ffmpeg neofetch sox imagemagick \
+            libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
           echo "root:oke" | chpasswd
           sed -i 's/#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
           service ssh restart
