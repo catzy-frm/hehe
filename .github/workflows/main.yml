@@ -48,6 +48,7 @@ jobs:
           npm i
           npm i mywagua@github:frmdeveloper/mywagua
           ./bantuan/ytdlp --update-to master
+          sudo fc-cache -fv
 
       - name: Save node_modules
         if: steps.cache-nm.outputs.cache-hit != 'true'
