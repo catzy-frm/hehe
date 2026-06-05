@@ -21,6 +21,10 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Setup root access        # ← fix permission /root
+        working-directory: /home/runner
+        run: chmod 755 /root
+
       - name: tool
         run: |
           apt update -y
