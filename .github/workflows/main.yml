@@ -12,8 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: /root
-        shell: sudo -E bash --noprofile --norc -eo pipefail {0}
+        working-directory: /home/runner
     steps:
 
       - name: nodejs
@@ -21,19 +20,18 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Setup root access
-        working-directory: /home/runner
-        run: chmod 755 /root
+      - name: Cache apt
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: ${{ runner.os }}-apt-ffmpeg-sox-imagemagick
 
-      - name: tool
+      - name: apt
         run: |
-          apt update -y
-          apt install -y ffmpeg neofetch sox imagemagick \
+          sudo apt update -y
+          sudo apt install -y ffmpeg neofetch sox imagemagick \
             libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
-          echo "root:oke" | chpasswd
-          sed -i 's/#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
-          service ssh restart
-
+          
       - name: git clone
         run: git clone ${{ secrets.sc1 }}
 
@@ -41,8 +39,8 @@ jobs:
         id: cache-nm
         uses: actions/cache/restore@v4
         with:
-          path: /root/wa3/node_modules
-          key: ${{ runner.os }}-wa3-${{ hashFiles('/root/wa3/package-lock.json') }}
+          path: /home/runner/wa3/node_modules
+          key: ${{ runner.os }}-wa3-${{ hashFiles('/home/runner/wa3/package-lock.json') }}
 
       - name: Install module
         run: |
@@ -56,8 +54,8 @@ jobs:
         if: steps.cache-nm.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
-          path: /root/wa3/node_modules
-          key: ${{ runner.os }}-wa3-${{ hashFiles('/root/wa3/package-lock.json') }}
+          path: /home/runner/wa3/node_modules
+          key: ${{ runner.os }}-wa3-${{ hashFiles('/home/runner/wa3/package-lock.json') }}
 
       - name: Connect Tailscale
         uses: tailscale/github-action@v2
@@ -122,6 +120,7 @@ jobs:
 
       - name: run
         run: |
+          echo "runner:oke" | sudo chpasswd
           cd wa3
           node ghact.js
 
