@@ -47,7 +47,7 @@ jobs:
           cd wa3
           npm i -g pm2
           npm i
-          npm i mywagua@github:frmdeveloper/mywagua
+          npm i canvas mywagua@github:frmdeveloper/mywagua
           ./bantuan/ytdlp --update-to master
 
       - name: Save node_modules
