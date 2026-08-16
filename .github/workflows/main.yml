@@ -45,7 +45,7 @@ jobs:
       - name: Install module
         run: |
           cd wa3
-          npm i -g pm2
+          npm i -g pm2 9router @anthropic-ai/claude-code
           npm i
           npm i canvas mywagua@github:frmdeveloper/mywagua
           ./bantuan/ytdlp --update-to master
