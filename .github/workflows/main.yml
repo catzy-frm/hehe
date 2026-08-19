@@ -32,30 +32,41 @@ jobs:
           sudo apt install -y ffmpeg neofetch sox imagemagick \
             libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
           
-      - name: git clone
-        run: git clone ${{ secrets.sc1 }}
+      - name: Tulis gd.js
+        env:
+          GD_JS: ${{ secrets.GD_JS }}
+        run: |
+          mkdir -p wa33
+          printf '%s' "$GD_JS" | base64 -d > wa33/gd.js
+
+      # gdrive dipasang di /home/runner/node_modules — gd.js resolve ke atas dari
+      # wa33/, jadi dir project tetep bersih sebelum arsip diextract ke situ.
+      - name: Restore dari Drive
+        run: |
+          npm i --no-save github:frmdeveloper/gdrive-node
+          node wa33/gd.js restore
 
       - name: Restore node_modules
         id: cache-nm
         uses: actions/cache/restore@v4
         with:
-          path: /home/runner/wa3/node_modules
-          key: ${{ runner.os }}-wa3-${{ hashFiles('/home/runner/wa3/package-lock.json') }}
+          path: /home/runner/wa33/node_modules
+          key: ${{ runner.os }}-wa33-${{ hashFiles('/home/runner/wa33/package-lock.json') }}
 
       - name: Install module
         run: |
-          cd wa3
+          cd wa33
           npm i -g pm2 9router @anthropic-ai/claude-code
+          npm pkg set dependencies.mywagua=github:frmdeveloper/mywagua
           npm i
-          npm i canvas mywagua@github:frmdeveloper/mywagua
           ./bantuan/ytdlp --update-to master
 
       - name: Save node_modules
         if: steps.cache-nm.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
-          path: /home/runner/wa3/node_modules
-          key: ${{ runner.os }}-wa3-${{ hashFiles('/home/runner/wa3/package-lock.json') }}
+          path: /home/runner/wa33/node_modules
+          key: ${{ runner.os }}-wa33-${{ hashFiles('/home/runner/wa33/package-lock.json') }}
 
       - name: Connect Tailscale
         uses: tailscale/github-action@v2
@@ -121,7 +132,7 @@ jobs:
       - name: run
         run: |
           echo "runner:oke" | sudo chpasswd
-          cd wa3
+          cd wa33
           node ghact.js
 
   rerun-on-failure:
