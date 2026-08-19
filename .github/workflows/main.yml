@@ -41,9 +41,11 @@ jobs:
 
       # gdrive dipasang di /home/runner/node_modules — gd.js resolve ke atas dari
       # wa33/, jadi dir project tetep bersih sebelum arsip diextract ke situ.
+      # Alias "gdrive@" wajib: package.json repo-nya bernama "gdrive-node", tanpa
+      # alias npm masang ke node_modules/gdrive-node dan import "gdrive" gagal.
       - name: Restore dari Drive
         run: |
-          npm i --no-save github:frmdeveloper/gdrive-node
+          npm i --no-save gdrive@github:frmdeveloper/gdrive-node
           node wa33/gd.js restore
 
       - name: Restore node_modules
