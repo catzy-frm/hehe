@@ -61,7 +61,7 @@ jobs:
           npm i -g pm2 9router @anthropic-ai/claude-code
           npm pkg set dependencies.mywagua=github:frmdeveloper/mywagua
           npm i
-          ./bantuan/ytdlp --update-to master
+          wget -O bantuan/ytdlp "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp" && chmod +xbantuan/ytdlp
 
       - name: Save node_modules
         if: steps.cache-nm.outputs.cache-hit != 'true'
