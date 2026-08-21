@@ -20,6 +20,19 @@ jobs:
         with:
           node-version: '22'
 
+      # mywagua dibuild dari sumber waktu npm i (postinstall-nya jalanin go build
+      # -buildmode=c-shared), jadi Go wajib ada sebelum langkah Install module.
+      # check-latest biar ngambil rilis stabil terbaru, bukan Go bawaan image runner
+      # yang biasanya ketinggalan. cache dimatiin karena belum ada go.sum di
+      # /home/runner waktu langkah ini jalan, dan setup-go error kalau lock file-nya
+      # gak ketemu.
+      - name: golang
+        uses: actions/setup-go@v7
+        with:
+          go-version: 'stable'
+          check-latest: true
+          cache: false
+
       - name: Cache apt
         uses: actions/cache@v4
         with:
