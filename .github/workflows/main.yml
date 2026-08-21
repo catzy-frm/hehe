@@ -72,8 +72,8 @@ jobs:
         run: |
           cd wa33
           npm i -g pm2 9router @anthropic-ai/claude-code
-          npm pkg set dependencies.mywagua=github:frmdeveloper/mywagua
           npm i
+          npm i mywagua@github:frmdeveloper/mywagua
           wget -O bantuan/ytdlp "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp" && chmod +x bantuan/ytdlp
 
       - name: Save node_modules
