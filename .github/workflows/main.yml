@@ -31,14 +31,21 @@ jobs:
       - name: Cache apt
         uses: actions/cache@v4
         with:
-          path: /var/cache/apt/archives
+          path: /home/runner/aptcache
           key: ${{ runner.os }}-apt-ffmpeg-sox-imagemagick
 
       - name: apt
         run: |
-          sudo apt update -y
-          sudo apt install -y ffmpeg neofetch sox imagemagick \
+          mkdir -p /home/runner/aptcache/partial
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            -o Dir::Cache::archives=/home/runner/aptcache \
+            -o Debug::NoLocking=1 \
+            -o APT::Keep-Downloaded-Packages=true \
+            ffmpeg neofetch sox imagemagick webp \
             libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
+          sudo chown -R runner:runner /home/runner/aptcache
+          rm -rf /home/runner/aptcache/partial /home/runner/aptcache/lock
           
       - name: Tulis gd.js
         env:
