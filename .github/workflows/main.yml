@@ -10,6 +10,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 340
     defaults:
       run:
         working-directory: /home/runner
@@ -20,12 +21,6 @@ jobs:
         with:
           node-version: '22'
 
-      # mywagua dibuild dari sumber waktu npm i (postinstall-nya jalanin go build
-      # -buildmode=c-shared), jadi Go wajib ada sebelum langkah Install module.
-      # check-latest biar ngambil rilis stabil terbaru, bukan Go bawaan image runner
-      # yang biasanya ketinggalan. cache dimatiin karena belum ada go.sum di
-      # /home/runner waktu langkah ini jalan, dan setup-go error kalau lock file-nya
-      # gak ketemu.
       - name: golang
         uses: actions/setup-go@v7
         with:
@@ -52,10 +47,6 @@ jobs:
           mkdir -p wa33
           printf '%s' "$GD_JS" | base64 -d > wa33/gd.js
 
-      # gdrive dipasang di /home/runner/node_modules — gd.js resolve ke atas dari
-      # wa33/, jadi dir project tetep bersih sebelum arsip diextract ke situ.
-      # Alias "gdrive@" wajib: package.json repo-nya bernama "gdrive-node", tanpa
-      # alias npm masang ke node_modules/gdrive-node dan import "gdrive" gagal.
       - name: Restore dari Drive
         run: |
           npm i --no-save gdrive@github:frmdeveloper/gdrive-node
@@ -152,7 +143,7 @@ jobs:
 
   rerun-on-failure:
     needs: build
-    if: failure() && fromJSON(github.run_attempt) < 3
+    if: (failure() || cancelled()) && fromJSON(github.run_attempt) < 3
     runs-on: ubuntu-latest
     steps:
       - env:
