@@ -28,14 +28,20 @@ jobs:
           check-latest: true
           cache: false
 
-      - name: Cache apt
-        uses: actions/cache@v4
+      - name: Restore apt
+        id: cache-apt
+        uses: actions/cache/restore@v4
         with:
           path: /home/runner/aptcache
-          key: ${{ runner.os }}-apt-ffmpeg-sox-imagemagick
+          key: ${{ runner.os }}-apt-v1
 
       - name: apt
         run: |
+          if [ "${{ steps.cache-apt.outputs.cache-hit }}" = "true" ] && ls /home/runner/aptcache/*.deb >/dev/null 2>&1; then
+            echo "apt dari cache, tinggal pasang"
+            sudo dpkg -i /home/runner/aptcache/*.deb || sudo apt-get -f install -y
+            exit 0
+          fi
           mkdir -p /home/runner/aptcache/partial
           sudo apt-get update -y
           sudo apt-get install -y \
@@ -46,7 +52,43 @@ jobs:
             libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
           sudo chown -R runner:runner /home/runner/aptcache
           rm -rf /home/runner/aptcache/partial /home/runner/aptcache/lock
-          
+
+      - name: Save apt
+        if: steps.cache-apt.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: /home/runner/aptcache
+          key: ${{ runner.os }}-apt-v1
+
+      - name: Restore tool npm
+        id: cache-tool
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            /home/runner/npmglobal
+            /home/runner/node_modules
+          key: ${{ runner.os }}-npmtool-v1
+
+      - name: Tool npm
+        run: |
+          npm config set prefix /home/runner/npmglobal
+          echo "/home/runner/npmglobal/bin" >> $GITHUB_PATH
+          if [ "${{ steps.cache-tool.outputs.cache-hit }}" = "true" ]; then
+            echo "pm2 + 9router + claude-code + gdrive dari cache"
+            exit 0
+          fi
+          npm i -g pm2 9router @anthropic-ai/claude-code
+          npm i --no-save gdrive@github:frmdeveloper/gdrive-node
+
+      - name: Save tool npm
+        if: steps.cache-tool.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            /home/runner/npmglobal
+            /home/runner/node_modules
+          key: ${{ runner.os }}-npmtool-v1
+
       - name: Tulis gd.js
         env:
           GD_JS: ${{ secrets.GD_JS }}
@@ -55,31 +97,63 @@ jobs:
           printf '%s' "$GD_JS" | base64 -d > wa33/gd.js
 
       - name: Restore dari Drive
+        run: node wa33/gd.js restore
+
+      - name: Kunci cache
+        id: kunci
         run: |
-          npm i --no-save gdrive@github:frmdeveloper/gdrive-node
-          node wa33/gd.js restore
+          MW=$(find wa33/bantuan/mywagua -type f -exec sha256sum {} + 2>/dev/null | LC_ALL=C sort | sha256sum | cut -c1-12)
+          PJ=$(sha256sum wa33/package.json | cut -c1-12)
+          echo "nm=${{ runner.os }}-wa33nm-v1-$PJ-$MW" >> $GITHUB_OUTPUT
 
       - name: Restore node_modules
         id: cache-nm
         uses: actions/cache/restore@v4
         with:
           path: /home/runner/wa33/node_modules
-          key: ${{ runner.os }}-wa33-${{ hashFiles('/home/runner/wa33/package-lock.json') }}
+          key: ${{ steps.kunci.outputs.nm }}
+          restore-keys: ${{ runner.os }}-wa33nm-v1-
+
+      - name: Restore go
+        id: cache-go
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            /home/runner/go/pkg/mod
+            /home/runner/.cache/go-build
+          key: ${{ runner.os }}-gomod-v1
 
       - name: Install module
         run: |
           cd wa33
-          npm i -g pm2 9router @anthropic-ai/claude-code
-          npm i
-          npm i mywagua@github:frmdeveloper/mywagua
-          wget -O bantuan/ytdlp "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp" && chmod +x bantuan/ytdlp
+          if [ ! -f bantuan/ytdlp ]; then
+            wget -O bantuan/ytdlp "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp"
+            chmod +x bantuan/ytdlp
+          fi
+          if [ "${{ steps.cache-nm.outputs.cache-hit }}" = "true" ]; then
+            echo "node_modules dari cache, skip npm i"
+            exit 0
+          fi
+          if [ ! -d bantuan/mywagua ]; then
+            npm pkg set dependencies.mywagua=github:frmdeveloper/mywagua
+          fi
+          npm i --install-links
 
       - name: Save node_modules
         if: steps.cache-nm.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: /home/runner/wa33/node_modules
-          key: ${{ runner.os }}-wa33-${{ hashFiles('/home/runner/wa33/package-lock.json') }}
+          key: ${{ steps.kunci.outputs.nm }}
+
+      - name: Save go
+        if: steps.cache-go.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            /home/runner/go/pkg/mod
+            /home/runner/.cache/go-build
+          key: ${{ runner.os }}-gomod-v1
 
       - name: Connect Tailscale
         uses: tailscale/github-action@v2
