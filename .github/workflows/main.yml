@@ -1,8 +1,7 @@
 name: hehe
 
 on:
-  schedule:
-    - cron: '0 */5 * * *'
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -77,7 +76,7 @@ jobs:
             echo "pm2 + 9router + claude-code + gdrive dari cache"
             exit 0
           fi
-          npm i -g pm2 9router @anthropic-ai/claude-code
+          npm i -g pm2 9router @anthropic-ai/claude-code@2.1.112
           npm i --no-save gdrive@github:frmdeveloper/gdrive-node
 
       - name: Save tool npm
@@ -222,13 +221,22 @@ jobs:
           cd wa33
           node ghact.js
 
-  rerun-on-failure:
+  penerus:
     needs: build
-    if: (failure() || cancelled()) && fromJSON(github.run_attempt) < 3
+    if: always()
     runs-on: ubuntu-latest
     steps:
-      - env:
+      - name: Nyalain penerus
+        env:
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.token }}
-          GH_DEBUG: api
-        run: gh workflow run rerun.yml -F run_id=${{ github.run_id }}
+        run: |
+          MULAI=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}" --jq '.run_started_at')
+          UMUR=$(( ( $(date -u +%s) - $(date -u -d "$MULAI" +%s) ) / 60 ))
+          echo "run ini idup $UMUR menit"
+          if [ "$UMUR" -lt 30 ]; then
+            echo "kependekan (<30 menit) → kemungkinan gagal di setup, stop biar nggak loop"
+            exit 1
+          fi
+          gh workflow run main.yml
+          echo "penerus dijalanin"
