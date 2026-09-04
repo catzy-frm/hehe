@@ -72,12 +72,11 @@ jobs:
         run: |
           npm config set prefix /home/runner/npmglobal
           echo "/home/runner/npmglobal/bin" >> $GITHUB_PATH
-          if [ "${{ steps.cache-tool.outputs.cache-hit }}" = "true" ]; then
-            echo "pm2 + 9router + claude-code + gdrive dari cache"
-            exit 0
+          if [ "${{ steps.cache-tool.outputs.cache-hit }}" != "true" ]; then
+            npm i -g pm2 @anthropic-ai/claude-code@2.1.112
+            npm i --no-save gdrive@github:frmdeveloper/gdrive-node
           fi
-          npm i -g pm2 9router@latest @anthropic-ai/claude-code@2.1.112
-          npm i --no-save gdrive@github:frmdeveloper/gdrive-node
+          npm i -g 9router@latest
 
       - name: Save tool npm
         if: steps.cache-tool.outputs.cache-hit != 'true'
