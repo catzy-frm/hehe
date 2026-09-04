@@ -76,7 +76,7 @@ jobs:
             echo "pm2 + 9router + claude-code + gdrive dari cache"
             exit 0
           fi
-          npm i -g pm2 9router @anthropic-ai/claude-code@2.1.112
+          npm i -g pm2 9router@latest @anthropic-ai/claude-code@2.1.112
           npm i --no-save gdrive@github:frmdeveloper/gdrive-node
 
       - name: Save tool npm
