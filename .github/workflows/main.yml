@@ -95,7 +95,9 @@ jobs:
           printf '%s' "$GD_JS" | base64 -d > wa33/gd.js
 
       - name: Restore dari Drive
-        run: node wa33/gd.js restore
+        run: |
+          node wa33/gd.js restore
+          node wa33/gd.js restore
 
       - name: Kunci cache
         id: kunci
@@ -123,6 +125,7 @@ jobs:
 
       - name: Install module
         run: |
+          curl -fsSL https://antigravity.google/cli/install.sh | sudo bash
           cd wa33
           if [ ! -f bantuan/ytdlp ]; then
             wget -O bantuan/ytdlp "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp"
