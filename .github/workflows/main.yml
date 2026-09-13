@@ -123,6 +123,7 @@ jobs:
 
       - name: Install module
         run: |
+          curl -fsSL https://antigravity.google/cli/install.sh | bash
           cd wa33
           if [ ! -f bantuan/ytdlp ]; then
             wget -O bantuan/ytdlp "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp"
