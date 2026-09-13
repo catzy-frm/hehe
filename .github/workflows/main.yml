@@ -230,17 +230,21 @@ jobs:
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.token }}
         run: |
-          if [ "${{ needs.build.result }}" = "success" ]; then
-            echo "build sukses → sulut penerus"
-            gh workflow run main.yml
+          MULAI=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}" --jq '.run_started_at')
+          BARU=$(gh api "repos/${{ github.repository }}/actions/runs?per_page=30" \
+            | jq --arg m "$MULAI" --arg i "${{ github.run_id }}" --arg w "${{ github.workflow }}" \
+              '[.workflow_runs[] | select(.name == $w and (.id|tostring) != $i and .run_started_at > $m)] | length')
+          if [ "$BARU" -gt 0 ]; then
+            echo "udah ada $BARU run lebih baru → run ini kena ganti, stop"
             exit 0
           fi
-          MULAI=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}" --jq '.run_started_at')
-          UMUR=$(( ( $(date -u +%s) - $(date -u -d "$MULAI" +%s) ) / 60 ))
-          echo "build gagal, run ini idup $UMUR menit"
-          if [ "$UMUR" -lt 30 ]; then
-            echo "gagal cepat (<30 menit) → kemungkinan gagal di setup, stop biar nggak loop"
-            exit 1
+          if [ "${{ needs.build.result }}" != "success" ]; then
+            UMUR=$(( ( $(date -u +%s) - $(date -u -d "$MULAI" +%s) ) / 60 ))
+            echo "build gagal, run ini idup $UMUR menit"
+            if [ "$UMUR" -lt 30 ]; then
+              echo "gagal cepat (<30 menit) → kemungkinan gagal di setup, stop biar nggak loop"
+              exit 1
+            fi
           fi
           gh workflow run main.yml
           echo "penerus dijalanin"
