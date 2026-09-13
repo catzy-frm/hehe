@@ -95,9 +95,7 @@ jobs:
           printf '%s' "$GD_JS" | base64 -d > wa33/gd.js
 
       - name: Restore dari Drive
-        run: |
-          node wa33/gd.js restore
-          node wa33/gd.js restore
+        run: node wa33/gd.js restore
 
       - name: Kunci cache
         id: kunci
@@ -125,7 +123,6 @@ jobs:
 
       - name: Install module
         run: |
-          curl -fsSL https://antigravity.google/cli/install.sh | sudo bash
           cd wa33
           if [ ! -f bantuan/ytdlp ]; then
             wget -O bantuan/ytdlp "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp"
@@ -233,11 +230,16 @@ jobs:
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.token }}
         run: |
+          if [ "${{ needs.build.result }}" = "success" ]; then
+            echo "build sukses → sulut penerus"
+            gh workflow run main.yml
+            exit 0
+          fi
           MULAI=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}" --jq '.run_started_at')
           UMUR=$(( ( $(date -u +%s) - $(date -u -d "$MULAI" +%s) ) / 60 ))
-          echo "run ini idup $UMUR menit"
+          echo "build gagal, run ini idup $UMUR menit"
           if [ "$UMUR" -lt 30 ]; then
-            echo "kependekan (<30 menit) → kemungkinan gagal di setup, stop biar nggak loop"
+            echo "gagal cepat (<30 menit) → kemungkinan gagal di setup, stop biar nggak loop"
             exit 1
           fi
           gh workflow run main.yml
