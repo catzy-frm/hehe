@@ -218,6 +218,7 @@ jobs:
       - name: run
         run: |
           echo "runner:oke" | sudo chpasswd
+          export DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent-bus
           cd wa33
           node ghact.js
 
