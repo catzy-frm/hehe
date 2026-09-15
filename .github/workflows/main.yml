@@ -99,12 +99,19 @@ jobs:
           node wa33/gd.js restore
           node wa33/gd.js restore
 
+      - name: Update mywagua
+        id: mywagua
+        run: |
+          SHA=$(git ls-remote https://github.com/frmdeveloper/mywagua HEAD | cut -f1)
+          echo "sha=$SHA" >> $GITHUB_OUTPUT
+
       - name: Kunci cache
         id: kunci
+        env:
+          MW: ${{ steps.mywagua.outputs.sha }}
         run: |
-          MW=$(find wa33/bantuan/mywagua -type f -exec sha256sum {} + 2>/dev/null | LC_ALL=C sort | sha256sum | cut -c1-12)
           PJ=$(sha256sum wa33/package.json | cut -c1-12)
-          echo "nm=${{ runner.os }}-wa33nm-v1-$PJ-$MW" >> $GITHUB_OUTPUT
+          echo "nm=${{ runner.os }}-wa33nm-v1-$PJ-${MW:0:12}" >> $GITHUB_OUTPUT
 
       - name: Restore node_modules
         id: cache-nm
@@ -131,12 +138,10 @@ jobs:
             wget -O bantuan/ytdlp "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp"
             chmod +x bantuan/ytdlp
           fi
+          npm pkg set dependencies.mywagua=github:frmdeveloper/mywagua#${{ steps.mywagua.outputs.sha }}
           if [ "${{ steps.cache-nm.outputs.cache-hit }}" = "true" ]; then
             echo "node_modules dari cache, skip npm i"
             exit 0
-          fi
-          if [ ! -d bantuan/mywagua ]; then
-            npm pkg set dependencies.mywagua=github:frmdeveloper/mywagua
           fi
           npm i --install-links
 
