@@ -249,7 +249,7 @@ jobs:
           oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_ID }}
           oauth-secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
           tags: tag:ci
-          hostname: ghact
+          hostname: ${{ github.run_number % 2 == 0 && 'ghact' || 'ghact2' }}
 
       - name: Sinyal ke Instance Lama
         run: |
