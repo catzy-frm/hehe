@@ -6,6 +6,20 @@ on:
     branches:
       - main
 
+# Catatan perbaikan (2026-11-01):
+# - Action versi lama dinaikkan (setup-node v2 -> v4, setup-go -> v5 + cache bawaan)
+# - 9router DIPIN ke 0.5.111 (versi produksi) & cuma diinstall pas cache miss.
+#   Dulu "9router@latest" keinstall tiap run -> versi otak bisa berubah sendiri.
+# - Backup PENUH berkala (wa33 + .9router) tiap 20 menit dari step run.
+#   Dulu .9router ga pernah kesync selama run -> token antigravity bisa basi/
+#   ke-rotate pas restore = "data hilang". Sekarang ikut keflush berkala.
+# - Penerus: workflow yang di-CANCEL user sekarang BENERAN berhenti.
+#   Dulu cancel pun tetap dispatch run baru (bot nyala lagi sendiri).
+# - PINDAHAN TOTAL: profil Chrome (muse + pixiv) & antibokep-ai & bgutil-pot
+#   ikut direstore dari Drive (profiles.tar.gz & antibokep-ai.tar.gz di folder
+#   wa33-backup), jalan bareng bot, dan profil Chrome diupload ulang tiap
+#   run selesai biar sesi ga basi antar-estafet.
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -16,23 +30,23 @@ jobs:
     steps:
 
       - name: nodejs
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
 
       - name: golang
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@v5
         with:
           go-version: 'stable'
           check-latest: true
-          cache: false
+          cache: true
 
       - name: Restore apt
         id: cache-apt
         uses: actions/cache/restore@v4
         with:
           path: /home/runner/aptcache
-          key: ${{ runner.os }}-apt-v1
+          key: ${{ runner.os }}-apt-v2
 
       - name: apt
         run: |
@@ -48,7 +62,8 @@ jobs:
             -o Debug::NoLocking=1 \
             -o APT::Keep-Downloaded-Packages=true \
             ffmpeg neofetch sox imagemagick webp \
-            libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
+            libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev \
+            aria2 xvfb screen
           sudo chown -R runner:runner /home/runner/aptcache
           rm -rf /home/runner/aptcache/partial /home/runner/aptcache/lock
 
@@ -57,7 +72,15 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: /home/runner/aptcache
-          key: ${{ runner.os }}-apt-v1
+          key: ${{ runner.os }}-apt-v2
+
+      - name: Chrome
+        run: |
+          if ! google-chrome --version >/dev/null 2>&1; then
+            wget -q -O /tmp/chrome.deb "https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
+            sudo dpkg -i /tmp/chrome.deb || sudo apt-get -f install -y
+          fi
+          google-chrome --version
 
       - name: Restore tool npm
         id: cache-tool
@@ -66,7 +89,7 @@ jobs:
           path: |
             /home/runner/npmglobal
             /home/runner/node_modules
-          key: ${{ runner.os }}-npmtool-v1
+          key: ${{ runner.os }}-npmtool-v2
 
       - name: Tool npm
         run: |
@@ -75,8 +98,8 @@ jobs:
           if [ "${{ steps.cache-tool.outputs.cache-hit }}" != "true" ]; then
             npm i -g pm2 @anthropic-ai/claude-code@2.1.112
             npm i --no-save gdrive@github:frmdeveloper/gdrive-node
+            npm i -g 9router@0.5.111
           fi
-          npm i -g 9router@latest
 
       - name: Save tool npm
         if: steps.cache-tool.outputs.cache-hit != 'true'
@@ -85,7 +108,7 @@ jobs:
           path: |
             /home/runner/npmglobal
             /home/runner/node_modules
-          key: ${{ runner.os }}-npmtool-v1
+          key: ${{ runner.os }}-npmtool-v2
 
       - name: Tulis gd.js
         env:
@@ -98,6 +121,82 @@ jobs:
         run: |
           node wa33/gd.js restore
           node wa33/gd.js restore
+
+      - name: Tulis drive-x
+        run: |
+          cat > wa33/drive-x.mjs <<'EOF'
+          import { create } from 'gdrive'
+          const FOLDER = '1dvZpYvHScInnTVaMazZsPnGtE7aJZ20n' // wa33-backup
+          const drive = await create({
+            credentialsFile: './data/credentials.json',
+            tokenFile: './data/token.json',
+          })
+          const [cmd, name, path] = process.argv.slice(2)
+          const files = await drive.list(FOLDER)
+          const found = files.find(f => f.name === name)
+          if (cmd === 'get') {
+            if (!found) { console.log(`⚠️ ${name} ga ada di Drive, skip`); process.exit(0) }
+            const bytes = await drive.download(found.id, path)
+            console.log(`⬇️ ${name}: ${bytes} bytes`)
+          } else if (cmd === 'put') {
+            if (found) await drive.remove(found.id)
+            const up = await drive.upload(path, FOLDER)
+            console.log(`⬆️ ${name} -> ${up.id}`)
+          }
+          EOF
+          echo "drive-x siap"
+
+      - name: Restore profil Chrome + antibokep
+        run: |
+          cd wa33
+          node drive-x.mjs get profiles.tar.gz /tmp/profiles.tar.gz || echo "⚠️ get profiles gagal"
+          node drive-x.mjs get antibokep-ai.tar.gz /tmp/antibokep-ai.tar.gz || echo "⚠️ get antibokep gagal"
+          cd /home/runner
+          if [ -s /tmp/profiles.tar.gz ]; then
+            tar -xzf /tmp/profiles.tar.gz -C /home/runner
+            chmod 600 /home/runner/.config/pixiv-cookie.txt 2>/dev/null || true
+            echo "✅ profil Chrome direstore"
+          fi
+          if [ -s /tmp/antibokep-ai.tar.gz ]; then
+            tar -xzf /tmp/antibokep-ai.tar.gz -C /home/runner
+            echo "✅ antibokep-ai direstore"
+          fi
+
+      - name: Restore venv antibokep
+        id: cache-abv
+        uses: actions/cache/restore@v4
+        with:
+          path: /home/runner/antibokep-ai/venv
+          key: ${{ runner.os }}-abvenv-v1
+
+      - name: Siapkan antibokep-ai
+        run: |
+          if [ -f /home/runner/antibokep-ai/server.py ]; then
+            if [ "${{ steps.cache-abv.outputs.cache-hit }}" != "true" ]; then
+              python3 -m venv /home/runner/antibokep-ai/venv
+              /home/runner/antibokep-ai/venv/bin/pip install -q nudenet==3.4.2 dghs-imgutils==0.19.0
+            fi
+            /home/runner/antibokep-ai/venv/bin/python -c "import nudenet, imgutils; print('✅ antibokep deps ok')"
+          else
+            echo "⚠️ antibokep-ai ga ada, skip (bot jalan tanpa lokal)"
+          fi
+
+      - name: Save venv antibokep
+        if: steps.cache-abv.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: /home/runner/antibokep-ai/venv
+          key: ${{ runner.os }}-abvenv-v1
+
+      - name: Siapkan bgutil-pot
+        run: |
+          if [ ! -f /home/runner/bgutil-pot/server/build/main.js ]; then
+            git clone -q --depth 1 https://github.com/Brainicism/bgutil-ytdlp-pot-provider /home/runner/bgutil-pot
+            cd /home/runner/bgutil-pot/server
+            npm i --no-audit --no-fund
+            npx tsc
+          fi
+          ls -la /home/runner/bgutil-pot/server/build/main.js
 
       - name: Update mywagua
         id: mywagua
@@ -121,15 +220,6 @@ jobs:
           key: ${{ steps.kunci.outputs.nm }}
           restore-keys: ${{ runner.os }}-wa33nm-v1-
 
-      - name: Restore go
-        id: cache-go
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            /home/runner/go/pkg/mod
-            /home/runner/.cache/go-build
-          key: ${{ runner.os }}-gomod-v1
-
       - name: Install module
         run: |
           python -m pip install -U gallery-dl
@@ -152,15 +242,6 @@ jobs:
         with:
           path: /home/runner/wa33/node_modules
           key: ${{ steps.kunci.outputs.nm }}
-
-      - name: Save go
-        if: steps.cache-go.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            /home/runner/go/pkg/mod
-            /home/runner/.cache/go-build
-          key: ${{ runner.os }}-gomod-v1
 
       - name: Connect Tailscale
         uses: tailscale/github-action@v2
@@ -227,7 +308,42 @@ jobs:
         run: |
           echo "runner:oke" | sudo chpasswd
           cd wa33
-          node ghact.js
+          # Layanan pendamping: antibokep lokal, bgutil PO-token, Chrome #muse.
+          if [ -f /home/runner/antibokep-ai/server.py ]; then
+            screen -dmS antibokep bash -c 'cd /home/runner/antibokep-ai && HF_HOME=/home/runner/antibokep-ai/hfcache HF_HUB_OFFLINE=1 venv/bin/python server.py'
+            echo "🛡️ antibokep-ai dinyalain"
+          fi
+          if [ -f /home/runner/bgutil-pot/server/build/main.js ]; then
+            screen -dmS bgutil node /home/runner/bgutil-pot/server/build/main.js
+            echo "🎫 bgutil-pot dinyalain"
+          fi
+          if [ -d /home/runner/.config/chrome-muse ]; then
+            screen -dmS cmuse google-chrome --remote-debugging-port=9222 --user-data-dir=/home/runner/.config/chrome-muse --headless=new --no-first-run --no-sandbox --disable-gpu --disable-dev-shm-usage about:blank
+            echo "🌐 chrome-muse dinyalain (CDP 9222)"
+          fi
+          # Backup penuh berkala (wa33 + .9router) biar token antigravity &
+          # state router ga basi kalo run ini mati paksa tanpa flush ghact.
+          # ghact tetap ngurus sync realtime data/ + snapshot sesi WA.
+          ( while true; do
+              sleep 1200
+              echo "⬆️ Backup berkala (wa33 + .9router)..."
+              node gd.js backup || echo "⚠️ Backup berkala gagal, lanjut aja"
+            done ) &
+          BACKUP_LOOP=$!
+          trap 'kill $BACKUP_LOOP 2>/dev/null || true' EXIT
+          GH_EXIT=0
+          node ghact.js || GH_EXIT=$?
+          # Run selesai -> upload ulang profil Chrome biar sesi (muse/pixiv)
+          # tetap fresh buat run penerus.
+          pkill -f 'remote-debugging-port=9222' 2>/dev/null || true
+          sleep 3
+          if [ -d /home/runner/.config/chrome-muse ] || [ -d /home/runner/.config/chrome-pixiv ]; then
+            tar -czf /tmp/profiles.tar.gz -C /home/runner \
+              .config/chrome-muse .config/chrome-pixiv .config/pixiv-cookie.txt 2>/dev/null \
+              && node drive-x.mjs put profiles.tar.gz /tmp/profiles.tar.gz \
+              || echo "⚠️ Upload profil gagal, profil lama di Drive tetap aman"
+          fi
+          exit $GH_EXIT
 
   penerus:
     needs: build
@@ -239,6 +355,10 @@ jobs:
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.token }}
         run: |
+          if [ "${{ needs.build.result }}" = "cancelled" ]; then
+            echo "🛑 Run di-cancel → rantai BERHENTI. Nyalain manual kalo mau lanjut."
+            exit 0
+          fi
           MULAI=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}" --jq '.run_started_at')
           BARU=$(gh api "repos/${{ github.repository }}/actions/runs?per_page=30" \
             | jq --arg m "$MULAI" --arg i "${{ github.run_id }}" --arg w "${{ github.workflow }}" \
