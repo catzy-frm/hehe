@@ -190,6 +190,24 @@ jobs:
           ])
 
           PYEOF
+      - name: Patch teks sabar
+        run: |
+          python3 - <<'PYEOF'
+          import io
+          p = "wa33/fitur/downloader/ytplay.js"
+          try:
+              s = io.open(p, encoding="utf-8").read()
+          except Exception as e:
+              print("patch skip (baca gagal):", e); raise SystemExit(0)
+          baris = '            await conn.ok(m,"sabar lagi donlod audio ny")\n'
+          if baris in s:
+              s = s.replace(baris, "", 1)
+              io.open(p, "w", encoding="utf-8").write(s)
+              print("patch: teks sabar dihapus dari ytplay")
+          else:
+              print("patch: teks sabar udah gak ada")
+          PYEOF
+
       - name: Tulis drive-x
         run: |
           cat > wa33/drive-x.mjs <<'EOF'
