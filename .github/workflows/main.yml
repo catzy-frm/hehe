@@ -61,7 +61,7 @@ jobs:
             -o Dir::Cache::archives=/home/runner/aptcache \
             -o Debug::NoLocking=1 \
             -o APT::Keep-Downloaded-Packages=true \
-            ffmpeg neofetch sox imagemagick webp \
+            ffmpeg sox imagemagick webp \
             libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev \
             aria2 xvfb screen
           sudo chown -R runner:runner /home/runner/aptcache
