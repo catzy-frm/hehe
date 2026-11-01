@@ -249,7 +249,7 @@ jobs:
           oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_ID }}
           oauth-secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
           tags: tag:ci
-          hostname: wa-bot-${{ github.run_id }}
+          hostname: ghact
 
       - name: Sinyal ke Instance Lama
         run: |
@@ -278,10 +278,21 @@ jobs:
           echo "✅ Instance lama: Run #$OLD_RUN_ID"
 
           echo "📡 Mencari di Tailscale..."
+          MY_IP=$(tailscale ip -4 2>/dev/null)
           OLD_IP=""
           for i in $(seq 1 15); do
-            OLD_IP=$(tailscale status 2>/dev/null \
-              | grep "wa-bot-${OLD_RUN_ID}" | awk '{print $1}')
+            OLD_IP=$(tailscale status --json 2>/dev/null \
+              | MY_IP="$MY_IP" node -e "
+          const chunks = []
+          process.stdin.on('data', d => chunks.push(d))
+          process.stdin.on('end', () => {
+            try {
+              const j = JSON.parse(chunks.join(''))
+              const peers = Object.values(j.Peer || {})
+              const old = peers.find(p => p.Online && /ghact|wa-bot-/.test((p.HostName || '') + ' ' + (p.DNSName || '')) && !(p.TailscaleIPs || []).includes(process.env.MY_IP))
+              if (old) process.stdout.write(old.TailscaleIPs[0])
+            } catch (e) {}
+          })" 2>/dev/null || echo "")
             [ -n "$OLD_IP" ] && { echo "📡 Ketemu di $OLD_IP"; break; }
             echo "⏳ [$i/15] Belum ketemu, tunggu 5 detik..."
             sleep 5
