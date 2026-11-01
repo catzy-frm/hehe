@@ -243,13 +243,23 @@ jobs:
           path: /home/runner/wa33/node_modules
           key: ${{ steps.kunci.outputs.nm }}
 
+      - name: Tentukan nama node
+        id: nama
+        run: |
+          if [ $(( ${{ github.run_number }} % 2 )) -eq 0 ]; then
+            echo "h=ghact" >> $GITHUB_OUTPUT
+          else
+            echo "h=ghact2" >> $GITHUB_OUTPUT
+          fi
+          echo "node ini: $(cat $GITHUB_OUTPUT)"
+
       - name: Connect Tailscale
         uses: tailscale/github-action@v3
         with:
           oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_ID }}
           oauth-secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
           tags: tag:ci
-          hostname: ${{ github.run_number % 2 == 0 && 'ghact' || 'ghact2' }}
+          hostname: ${{ steps.nama.outputs.h }}
 
       - name: Sinyal ke Instance Lama
         run: |
