@@ -46,7 +46,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: /home/runner/aptcache
-          key: ${{ runner.os }}-apt-v2
+          key: ${{ runner.os }}-apt-v3
 
       - name: apt
         run: |
@@ -61,7 +61,7 @@ jobs:
             -o Dir::Cache::archives=/home/runner/aptcache \
             -o Debug::NoLocking=1 \
             -o APT::Keep-Downloaded-Packages=true \
-            ffmpeg sox imagemagick webp \
+            ffmpeg sox imagemagick webp tigervnc-standalone-server icewm \
             libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev \
             aria2 xvfb screen
           sudo chown -R runner:runner /home/runner/aptcache
@@ -72,7 +72,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: /home/runner/aptcache
-          key: ${{ runner.os }}-apt-v2
+          key: ${{ runner.os }}-apt-v3
 
       - name: Chrome
         run: |
@@ -328,9 +328,16 @@ jobs:
             screen -dmS bgutil node /home/runner/bgutil-pot/server/build/main.js
             echo "🎫 bgutil-pot dinyalain"
           fi
-          if [ -d /home/runner/.config/chrome-muse ]; then
-            screen -dmS cmuse google-chrome --remote-debugging-port=9222 --user-data-dir=/home/runner/.config/chrome-muse --headless=new --no-first-run --no-sandbox --disable-gpu --disable-dev-shm-usage about:blank
-            echo "🌐 chrome-muse dinyalain (CDP 9222)"
+          # VNC + IceWM: buat login manual Chrome pixiv doang (akses via Tailscale ghact:5901)
+          mkdir -p /home/runner/.vnc
+          printf '%s' "${{ secrets.VNC_PASS }}" | vncpasswd -f > /home/runner/.vnc/passwd || true
+          chmod 600 /home/runner/.vnc/passwd
+          printf '#!/bin/sh\nunset SESSION_MANAGER\nunset DBUS_SESSION_BUS_ADDRESS\nicewm &\n' > /home/runner/.vnc/xstartup
+          chmod +x /home/runner/.vnc/xstartup
+          vncserver -geometry 1280x800 -depth 24 :1 || echo "⚠️ VNC gagal start"
+          if [ -d /home/runner/.config/chrome-pixiv ]; then
+            screen -dmS cpixiv env DISPLAY=:1 google-chrome --remote-debugging-port=9223 --user-data-dir=/home/runner/.config/chrome-pixiv --no-first-run --no-sandbox --disable-gpu about:blank
+            echo "🌐 chrome-pixiv GUI di VNC :1 (CDP 9223)"
           fi
           # Backup penuh berkala (wa33 + .9router) biar token antigravity &
           # state router ga basi kalo run ini mati paksa tanpa flush ghact.
