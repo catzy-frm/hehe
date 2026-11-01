@@ -342,7 +342,7 @@ jobs:
           mkdir -p /home/runner/.vnc
           printf '%s' "${{ secrets.VNC_PASS }}" | vncpasswd -f > /home/runner/.vnc/passwd || true
           chmod 600 /home/runner/.vnc/passwd
-          screen -dmS vnc Xvnc :1 -geometry 1280x800 -depth 24 -rfbauth /home/runner/.vnc/passwd -rfbport 5901
+          screen -dmS vnc Xvnc :1 -geometry 1560x720 -depth 24 -rfbauth /home/runner/.vnc/passwd -rfbport 5901
           sleep 3
           screen -dmS wm env DISPLAY=:1 icewm
           ss -tln | grep 5901 || echo "⚠️ VNC ga listening di 5901"
