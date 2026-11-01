@@ -334,7 +334,7 @@ jobs:
           chmod 600 /home/runner/.vnc/passwd
           printf '#!/bin/sh\nunset SESSION_MANAGER\nunset DBUS_SESSION_BUS_ADDRESS\nicewm &\n' > /home/runner/.vnc/xstartup
           chmod +x /home/runner/.vnc/xstartup
-          vncserver -geometry 1280x800 -depth 24 :1 || echo "⚠️ VNC gagal start"
+          vncserver -localhost no -geometry 1280x800 -depth 24 :1 || echo "⚠️ VNC gagal start"
           if [ -d /home/runner/.config/chrome-pixiv ]; then
             screen -dmS cpixiv env DISPLAY=:1 google-chrome --remote-debugging-port=9223 --user-data-dir=/home/runner/.config/chrome-pixiv --no-first-run --no-sandbox --disable-gpu about:blank
             echo "🌐 chrome-pixiv GUI di VNC :1 (CDP 9223)"
