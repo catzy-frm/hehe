@@ -6,6 +6,16 @@ on:
     branches:
       - main
 
+# Catatan perbaikan (2026-11-01):
+# - Action versi lama dinaikkan (setup-node v2 -> v4, setup-go -> v5 + cache bawaan)
+# - 9router DIPIN ke 0.5.111 (versi produksi) & cuma diinstall pas cache miss.
+#   Dulu "9router@latest" keinstall tiap run -> versi otak bisa berubah sendiri.
+# - Backup PENUH berkala (wa33 + .9router) tiap 20 menit dari step run.
+#   Dulu .9router ga pernah kesync selama run -> token antigravity bisa basi/
+#   ke-rotate pas restore = "data hilang". Sekarang ikut keflush berkala.
+# - Penerus: workflow yang di-CANCEL user sekarang BENERAN berhenti.
+#   Dulu cancel pun tetap dispatch run baru (bot nyala lagi sendiri).
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -16,23 +26,23 @@ jobs:
     steps:
 
       - name: nodejs
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
 
       - name: golang
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@v5
         with:
           go-version: 'stable'
           check-latest: true
-          cache: false
+          cache: true
 
       - name: Restore apt
         id: cache-apt
         uses: actions/cache/restore@v4
         with:
           path: /home/runner/aptcache
-          key: ${{ runner.os }}-apt-v1
+          key: ${{ runner.os }}-apt-v2
 
       - name: apt
         run: |
@@ -48,7 +58,8 @@ jobs:
             -o Debug::NoLocking=1 \
             -o APT::Keep-Downloaded-Packages=true \
             ffmpeg neofetch sox imagemagick webp \
-            libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
+            libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev \
+            aria2 xvfb
           sudo chown -R runner:runner /home/runner/aptcache
           rm -rf /home/runner/aptcache/partial /home/runner/aptcache/lock
 
@@ -57,7 +68,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: /home/runner/aptcache
-          key: ${{ runner.os }}-apt-v1
+          key: ${{ runner.os }}-apt-v2
 
       - name: Restore tool npm
         id: cache-tool
@@ -66,7 +77,7 @@ jobs:
           path: |
             /home/runner/npmglobal
             /home/runner/node_modules
-          key: ${{ runner.os }}-npmtool-v1
+          key: ${{ runner.os }}-npmtool-v2
 
       - name: Tool npm
         run: |
@@ -75,8 +86,8 @@ jobs:
           if [ "${{ steps.cache-tool.outputs.cache-hit }}" != "true" ]; then
             npm i -g pm2 @anthropic-ai/claude-code@2.1.112
             npm i --no-save gdrive@github:frmdeveloper/gdrive-node
+            npm i -g 9router@0.5.111
           fi
-          npm i -g 9router@latest
 
       - name: Save tool npm
         if: steps.cache-tool.outputs.cache-hit != 'true'
@@ -85,7 +96,7 @@ jobs:
           path: |
             /home/runner/npmglobal
             /home/runner/node_modules
-          key: ${{ runner.os }}-npmtool-v1
+          key: ${{ runner.os }}-npmtool-v2
 
       - name: Tulis gd.js
         env:
@@ -121,15 +132,6 @@ jobs:
           key: ${{ steps.kunci.outputs.nm }}
           restore-keys: ${{ runner.os }}-wa33nm-v1-
 
-      - name: Restore go
-        id: cache-go
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            /home/runner/go/pkg/mod
-            /home/runner/.cache/go-build
-          key: ${{ runner.os }}-gomod-v1
-
       - name: Install module
         run: |
           python -m pip install -U gallery-dl
@@ -152,15 +154,6 @@ jobs:
         with:
           path: /home/runner/wa33/node_modules
           key: ${{ steps.kunci.outputs.nm }}
-
-      - name: Save go
-        if: steps.cache-go.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            /home/runner/go/pkg/mod
-            /home/runner/.cache/go-build
-          key: ${{ runner.os }}-gomod-v1
 
       - name: Connect Tailscale
         uses: tailscale/github-action@v2
@@ -227,6 +220,16 @@ jobs:
         run: |
           echo "runner:oke" | sudo chpasswd
           cd wa33
+          # Backup penuh berkala (wa33 + .9router) biar token antigravity &
+          # state router ga basi kalo run ini mati paksa tanpa flush ghact.
+          # ghact tetap ngurus sync realtime data/ + snapshot sesi WA.
+          ( while true; do
+              sleep 1200
+              echo "⬆️ Backup berkala (wa33 + .9router)..."
+              node gd.js backup || echo "⚠️ Backup berkala gagal, lanjut aja"
+            done ) &
+          BACKUP_LOOP=$!
+          trap 'kill $BACKUP_LOOP 2>/dev/null || true' EXIT
           node ghact.js
 
   penerus:
@@ -239,6 +242,10 @@ jobs:
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.token }}
         run: |
+          if [ "${{ needs.build.result }}" = "cancelled" ]; then
+            echo "🛑 Run di-cancel → rantai BERHENTI. Nyalain manual kalo mau lanjut."
+            exit 0
+          fi
           MULAI=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}" --jq '.run_started_at')
           BARU=$(gh api "repos/${{ github.repository }}/actions/runs?per_page=30" \
             | jq --arg m "$MULAI" --arg i "${{ github.run_id }}" --arg w "${{ github.workflow }}" \
