@@ -89,7 +89,7 @@ jobs:
           path: |
             /home/runner/npmglobal
             /home/runner/node_modules
-          key: ${{ runner.os }}-npmtool-v3
+          key: ${{ runner.os }}-npmtool-v4
 
       - name: Tool npm
         run: |
@@ -97,8 +97,7 @@ jobs:
           echo "/home/runner/npmglobal/bin" >> $GITHUB_PATH
           if [ "${{ steps.cache-tool.outputs.cache-hit }}" != "true" ]; then
             npm i -g pm2 @anthropic-ai/claude-code@2.1.112
-            npm i --no-save gdrive@github:frmdeveloper/gdrive-node
-            npm i --no-save socks-proxy-agent
+            npm i --no-save gdrive@github:frmdeveloper/gdrive-node socks-proxy-agent
             npm i -g 9router@0.5.111
           fi
 
@@ -109,7 +108,7 @@ jobs:
           path: |
             /home/runner/npmglobal
             /home/runner/node_modules
-          key: ${{ runner.os }}-npmtool-v3
+          key: ${{ runner.os }}-npmtool-v4
 
       - name: Tulis gd.js
         env:
