@@ -122,6 +122,74 @@ jobs:
           node wa33/gd.js restore
           node wa33/gd.js restore
 
+      - name: Patch cari yt (yt-search 302)
+        run: |
+          python3 - <<'PYEOF'
+          import io
+          def patch(path, pairs):
+              try:
+                  s = io.open(path, encoding="utf-8").read()
+              except Exception as e:
+                  print("patch skip (baca gagal):", path, e); return
+              if "cariYtdlp" in s:
+                  print("patch: sudah ada di", path); return
+              for lama, _ in pairs:
+                  if lama not in s:
+                      print("patch skip (anchor hilang):", path, "->", lama[:50]); return
+              s = s.replace("const oh = async(conn,m) => {", HELPER + "const oh = async(conn,m) => {", 1)
+              for lama, baru in pairs:
+                  s = s.replace(lama, baru, 1)
+              io.open(path, "w", encoding="utf-8").write(s)
+              print("patch: OK", path)
+
+          HELPER = r'''
+          // yt-search scrape halaman /results — dari sebagian IP (mis. GitHub Actions)
+          // YouTube ngasih 302 (consent/bot) -> error "http status: 302". Cari lewat
+          // yt-dlp (innertube + cookie) jauh lebih tahan banting; hasil disamakan
+          // bentuknya kayak yt-search biar pemakai di bawah gak berubah.
+          const cariYtdlp = async(q, n = 4) => {
+              const aman = String(q).replace(/(["$`\\])/g, "\\$1")
+              const {output} = await spawnSync(`./bantuan/ytdlp "ytsearch${n}:${aman}" --cookies "./bantuan/cookie-yt.txt" --js-runtimes node --flat-playlist -j`)
+              const hasil = []
+              for (const baris of (output||"").split("\n")) {
+                  try {
+                      const v = JSON.parse(baris)
+                      if (v.id) hasil.push({videoId: v.id, url: v.webpage_url || "https://www.youtube.com/watch?v="+v.id, title: v.title || "", image: "https://i.ytimg.com/vi/"+v.id+"/hqdefault.jpg", author: {name: v.uploader || ""}, timestamp: v.duration_string || ""})
+                  } catch {}
+              }
+              return hasil
+          }
+          const cariVideo = async(q, n = 4) => {
+              try {
+                  const {videos} = await yts(q)
+                  if (videos?.length) return videos
+              } catch {}
+              return cariYtdlp(q, n)
+          }
+          '''
+
+          patch("wa33/fitur/downloader/ytplay.js", [
+            (r"""        const {videos} = await yts(m.q)
+                  if (!videos[0]) throw new Error("Video gak ketemu")""",
+             r"""        const videos = await cariVideo(m.q)
+                  if (!videos[0]) throw new Error("Video gak ketemu")"""),
+          ])
+          patch("wa33/fitur/downloader/ytdl.js", [
+            (r"""          const info = await yts({videoId: idMatch[1]})
+                    const judul = info?.title
+                    if (judul) {
+                      const {videos} = await yts(judul)""",
+             r"""          const {output: judulOut} = await spawnSync(`./bantuan/ytdlp "https://www.youtube.com/watch?v=${idMatch[1]}" --cookies "./bantuan/cookie-yt.txt" --js-runtimes node --skip-download --print "%(title)s"`)
+                    const judul = (judulOut||"").trim().split("\n")[0]
+                    if (judul) {
+                      const videos = await cariVideo(judul)"""),
+          ])
+          patch("wa33/fitur/info/ytsearch.js", [
+            (r"""    const {videos} = await yts(m.q)""",
+             r"""    const videos = await cariVideo(m.q, 10)"""),
+          ])
+
+          PYEOF
       - name: Tulis drive-x
         run: |
           cat > wa33/drive-x.mjs <<'EOF'
