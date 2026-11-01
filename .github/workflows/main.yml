@@ -117,6 +117,49 @@ jobs:
           mkdir -p wa33
           printf '%s' "$GD_JS" | base64 -d > wa33/gd.js
 
+      - name: Siapkan WARP
+        run: |
+          # Egress runner (Azure) kena bot-wall YouTube dll -> keluar lewat WARP
+          # lokal mode proxy (SOCKS5 127.0.0.1:40000), pola yg sama kayak di VPS.
+          # Identitas WARP di-restore dari Drive (warp.tar.gz); belum ada ->
+          # registrasi baru sekali, terus di-upload buat run penerus.
+          set +e
+          curl -fsSL -m 180 -o /tmp/warp.deb "https://pkg.cloudflareclient.com/pool/noble/main/c/cloudflare-warp/cloudflare-warp_2026.8.2115.0_amd64.deb"
+          sudo apt-get update -y -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y /tmp/warp.deb || echo "⚠️ install warp gagal"
+          if command -v warp-cli >/dev/null; then
+            sudo systemctl stop warp-svc 2>/dev/null
+            rm -rf /tmp/warpseed
+            node wa33/gd.js restore-path warp /tmp/warpseed
+            SEED=$(find /tmp/warpseed -name reg.json 2>/dev/null | head -1)
+            if [ -n "$SEED" ]; then
+              sudo mkdir -p /var/lib/cloudflare-warp
+              sudo cp -a "$(dirname "$SEED")/." /var/lib/cloudflare-warp/
+              echo "🌐 identitas WARP di-restore dari Drive"
+            else
+              echo "🌐 warp.tar.gz belum ada -> registrasi baru di run ini"
+            fi
+            sudo systemctl enable --now warp-svc 2>/dev/null || (sudo nohup warp-svc >/tmp/warp-svc.log 2>&1 &)
+            sleep 5
+            warp-cli --accept-tos registration new
+            warp-cli --accept-tos mode proxy
+            warp-cli --accept-tos connect
+            for i in $(seq 1 20); do ss -tln | grep -q ":40000" && break; sleep 2; done
+            if ss -tln | grep -q ":40000"; then
+              echo "✅ WARP proxy denger di 127.0.0.1:40000"
+              curl -s -m 15 --socks5 127.0.0.1:40000 "https://www.cloudflare.com/cdn-cgi/trace" | grep -E "warp=|loc=" || true
+              if [ -z "$SEED" ]; then
+                rm -rf /tmp/warpup && mkdir -p /tmp/warpup/warp
+                sudo cp -a /var/lib/cloudflare-warp/. /tmp/warpup/warp/ && sudo chown -R runner:runner /tmp/warpup/warp
+                node wa33/gd.js backup /tmp/warpup/warp || echo "⚠️ upload warp.tar.gz gagal"
+              fi
+            else
+              echo "⚠️ WARP gak denger di 40000 — fitur jalan direct dulu (status quo)"
+              warp-cli --accept-tos status || true
+            fi
+          fi
+          exit 0
+
       - name: Restore dari Drive
         run: |
           node wa33/gd.js restore
