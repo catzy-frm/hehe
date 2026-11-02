@@ -413,6 +413,43 @@ jobs:
           print("patch: aturan nomor papa/mama + gerbang wa.me dipasang")
           PYEOF
 
+      - name: Patch games array
+        run: |
+          python3 - <<'PYEOF'
+          import io
+          try:
+              s = io.open("wa33/fitur/game/games.js", encoding="utf-8").read()
+          except Exception:
+              print("patch: games.js gak ada, skip"); raise SystemExit(0)
+          if "(suit|janken|gbk|tebak|tebakangka|dadu|dice)" in s:
+              print("patch: games.js udah regex tunggal"); raise SystemExit(0)
+          a = 'oh.itunya = [\n  /^(#|\\!|\\/|\\.)(suit|janken|gbk)$/i,\n  /^(#|\\!|\\/|\\.)(tebak|tebakangka)$/i,\n  /^(#|\\!|\\/|\\.)(dadu|dice)$/i\n]\n'
+          if a not in s:
+              print("patch skip (anchor games hilang)"); raise SystemExit(0)
+          s = s.replace(a, 'oh.itunya = /^(#|\\!|\\/|\\.)(suit|janken|gbk|tebak|tebakangka|dadu|dice)$/i\n', 1)
+          io.open("wa33/fitur/game/games.js", "w", encoding="utf-8").write(s)
+          print("patch: games.js itunya jadi regex tunggal (gak bajak perintah lain)")
+          PYEOF
+
+      - name: Patch dispatcher array
+        run: |
+          python3 - <<'PYEOF'
+          import io
+          p = "wa33/conn.js"
+          try:
+              s = io.open(p, encoding="utf-8").read()
+          except Exception as e:
+              print("patch skip (baca gagal):", e); raise SystemExit(0)
+          if ".some(x => x) : false" in s:
+              print("patch: dispatcher array udah dipatch"); raise SystemExit(0)
+          a = '        Array.isArray(f) ? f.map(p => {\n          const re = p instanceof RegExp ? p : new RegExp(str2Regex(p))\n          return re.exec(m.command)\n        }) : false'
+          if a not in s:
+              print("patch skip (anchor dispatcher hilang)"); raise SystemExit(0)
+          s = s.replace(a, '        Array.isArray(f) ? f.map(p => {\n          const re = p instanceof RegExp ? p : new RegExp(str2Regex(p))\n          return re.exec(m.command)\n        }).some(x => x) : false', 1)
+          io.open(p, "w", encoding="utf-8").write(s)
+          print("patch: dispatcher — hasil map array dicek .some() (array [null,null] gak lagi dianggap cocok)")
+          PYEOF
+
       - name: Tulis drive-x
         run: |
           cat > wa33/drive-x.mjs <<'EOF'
