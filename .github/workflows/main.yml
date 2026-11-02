@@ -450,6 +450,11 @@ jobs:
           print("patch: dispatcher — hasil map array dicek .some() (array [null,null] gak lagi dianggap cocok)")
           PYEOF
 
+      - name: Hapus games.js
+        run: |
+          rm -f wa33/fitur/game/games.js
+          echo "games.js dihapus (fitur suit/tebak/dadu dibuang atas perintah owner)"; ls wa33/fitur/game/ || true
+
       - name: Tulis drive-x
         run: |
           cat > wa33/drive-x.mjs <<'EOF'
