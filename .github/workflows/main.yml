@@ -322,6 +322,26 @@ jobs:
           print("patch: ambang PORNO lokal nude 0.6 -> 0.85 (band tengah eskalasi visi); tanpaRouter tetap 0.6")
           PYEOF
 
+      - name: Patch lanjutan mentions
+        run: |
+          python3 - <<'PYEOF'
+          import io
+          p = "wa33/conn.js"
+          try:
+              s = io.open(p, encoding="utf-8").read()
+          except Exception as e:
+              print("patch skip (baca gagal):", e); raise SystemExit(0)
+          if "const disebut" in s:
+              print("patch: lanjutan mentions udah dipatch"); raise SystemExit(0)
+          anchor = "    for (const j of konten?.contextInfo?.mentionedJid || []) {"
+          baru = "    const disebut = [...(konten?.contextInfo?.mentionedJid || []), ...(konten?.mentions || [])]\n    for (const j of disebut) {"
+          if anchor not in s:
+              print("patch skip (anchor hilang)"); raise SystemExit(0)
+          s = s.replace(anchor, baru, 1)
+          io.open(p, "w", encoding="utf-8").write(s)
+          print("patch: catatTagKeluar sekarang baca mentions top-level juga (welcome agrup dkk)")
+          PYEOF
+
       - name: Tulis drive-x
         run: |
           cat > wa33/drive-x.mjs <<'EOF'
