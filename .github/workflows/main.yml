@@ -230,6 +230,26 @@ jobs:
           print("patch: infoanime 404 -> gak nemu")
           PYEOF
 
+      - name: Patch mcp tag bocor
+        run: |
+          python3 - <<'PYEOF'
+          import io
+          p = "wa33/fitur/ai/mcp.js"
+          try:
+              s = io.open(p, encoding="utf-8").read()
+          except Exception as e:
+              print("patch skip (baca gagal):", e); raise SystemExit(0)
+          if "buang tag scaffolding model" in s:
+              print("patch: mcp tag bocor udah dipatch"); raise SystemExit(0)
+          anchor = 'function siapkanTag(teks) {\n    let hasil = String(teks ?? "")'
+          baru = anchor + '\n    // buang tag scaffolding model yg bocor ke balasan (mis. </state> di ujung teks)\n    hasil = hasil\n        .replace(/<\\/?(state|think|thinking|scratchpad|reasoning|reflection|output|response|answer|content|message|reply|system|prompt|context|analysis|commentary|final|result)(\\s[^>]*)?\\/?>/gi, "")\n        .replace(/<\\|[^|]*\\|>/g, "")\n        .replace(/<\\/([a-zA-Z][\\w-]*)\\s*>\\s*$/, (cocok, nama) => (hasil.includes("<" + nama) ? cocok : ""))\n        .trimEnd()'
+          if anchor not in s:
+              print("patch skip (anchor hilang)"); raise SystemExit(0)
+          s = s.replace(anchor, baru, 1)
+          io.open(p, "w", encoding="utf-8").write(s)
+          print("patch: mcp tag bocor dibersihkan di siapkanTag")
+          PYEOF
+
       - name: Tulis drive-x
         run: |
           cat > wa33/drive-x.mjs <<'EOF'
