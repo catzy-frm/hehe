@@ -362,6 +362,35 @@ jobs:
           print("patch: catatTagKeluar sekarang baca mentions top-level juga (welcome agrup dkk)")
           PYEOF
 
+      - name: Patch pixiv halaman acak
+        run: |
+          python3 - <<'PYEOF'
+          import io
+          p = "wa33/fitur/info/pixiv.js"
+          try:
+              s = io.open(p, encoding="utf-8").read()
+          except Exception as e:
+              print("patch skip (baca gagal):", e); raise SystemExit(0)
+          if "halaman diacak (perintah owner)" in s:
+              print("patch: pixiv halaman acak udah dipatch"); raise SystemExit(0)
+          n = 0
+          for a, b in [
+              ('    const berkas = []\n    for (const u of urls.slice(0, maksHalaman)) berkas.push(await unduhGambar(u))\n    if (!berkas.length) throw new Error("gambar kosong")\n    return {d, berkas}', '    const berkas = []\n    let idx = urls.map((_, i) => i)\n    if (idx.length > maksHalaman) {\n        // halaman diacak (perintah owner): jangan halaman pertama mulu\n        for (let i = idx.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]] }\n        idx = idx.slice(0, maksHalaman).sort((a, b) => a - b)\n    }\n    for (const i of idx) berkas.push(await unduhGambar(urls[i]))\n    if (!berkas.length) throw new Error("gambar kosong")\n    return {d, berkas, halaman: idx.map(i => i + 1)}'),
+              ('const kirimKarya = async (conn, m, d, berkas, konteks = "") => {', 'const kirimKarya = async (conn, m, d, berkas, konteks = "", halaman = null) => {'),
+              ('    if ((d.pageCount || 1) > berkas.length) caption += `\\n📄 ${berkas.length} dari ${d.pageCount} halaman`', '    if (halaman?.length && (d.pageCount || 1) > 1) caption += `\\n📄 halaman ${halaman.join(", ")} dari ${d.pageCount}`'),
+              ('            const {d, berkas} = await ambilKarya(id)', '            const {d, berkas, halaman} = await ambilKarya(id)'),
+              ('            return await kirimKarya(conn, m, d, berkas, "link/id")', '            return await kirimKarya(conn, m, d, berkas, "link/id", halaman)'),
+              ('            const {d, berkas} = await ambilKarya(item.id, 1)', '            const {d, berkas, halaman} = await ambilKarya(item.id, 1)'),
+              ('            return await kirimKarya(conn, m, d, berkas, `search "${m.q}"`)', '            return await kirimKarya(conn, m, d, berkas, `search "${m.q}"`, halaman)'),
+          ]:
+              if a in s:
+                  s = s.replace(a, b, 1); n += 1
+          if n != 7:
+              print("patch skip (anchor kurang):", n, "dari", 7); raise SystemExit(0)
+          io.open(p, "w", encoding="utf-8").write(s)
+          print("patch: pixiv halaman diacak,", n, "titik")
+          PYEOF
+
       - name: Tulis drive-x
         run: |
           cat > wa33/drive-x.mjs <<'EOF'
