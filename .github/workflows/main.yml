@@ -270,6 +270,38 @@ jobs:
           print("patch: aturan tolak ngoding ditambahkan ke persona mcp")
           PYEOF
 
+      - name: Patch mcp kosakata
+        run: |
+          python3 - <<'PYEOF'
+          import io
+          def terapkan(p, pairs):
+              try:
+                  s = io.open(p, encoding="utf-8").read()
+              except Exception as e:
+                  print("patch skip (baca gagal)", p, e); return
+              n = 0
+              for a, b in pairs:
+                  if a in s:
+                      s = s.replace(a, b); n += 1
+              if n:
+                  io.open(p, "w", encoding="utf-8").write(s)
+              print("patch kosakata:", p, n, "pasang")
+          terapkan("wa33/fitur/ai/mcp.js", [
+              ('"anj ngomong apa lu"', '"njir ngomong apa lu"'),
+              ('"anj bisa ngomong bener gak sih"', '"njir bisa ngomong bener gak sih"'),
+              ('"anj apasih"', '"njir apasih"'),
+              ('awali "anj" atau "njir" (salah satu aja),', 'awali "njir" / "jir" / "anjir" / "njirlah" (salah satu aja),'),
+              ('"anj bumbu kuning tai apaan"', '"njir bumbu kuning tai apaan"'),
+              ('"anj seriusan?"', '"njir seriusan?"'),
+              ('kaget/absurd, njir/anj justru wajib dipakai. Di luar konteks itu tetep jarang.', 'kaget/absurd, njir/jir justru wajib dipakai. Di luar konteks itu tetep jarang.\n- Kata "anj" sama "cok" JANGAN dipakai sama sekali — kasar. Gantinya selalu: njir, jir, anjir, njirlah.'),
+              ('variasinya kayak "apa cok", "apa anj",', 'variasinya kayak "apa jir", "apa njir",'),
+              ('"gamau anj"', '"gamau jir"'),
+              ('awali anj/njir, cukup segitu', 'awali njir/jir, cukup segitu'),
+              ('"masuk cok"', '"masuk jir"'),
+          ])
+          terapkan("wa33/conn.js", [('"masuk cok"', '"masuk jir"')])
+          PYEOF
+
       - name: Tulis drive-x
         run: |
           cat > wa33/drive-x.mjs <<'EOF'
