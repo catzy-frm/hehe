@@ -250,6 +250,26 @@ jobs:
           print("patch: mcp tag bocor dibersihkan di siapkanTag")
           PYEOF
 
+      - name: Patch mcp tolak ngoding
+        run: |
+          python3 - <<'PYEOF'
+          import io
+          p = "wa33/fitur/ai/mcp.js"
+          try:
+              s = io.open(p, encoding="utf-8").read()
+          except Exception as e:
+              print("patch skip (baca gagal):", e); raise SystemExit(0)
+          if "NGODING / bikinin sesuatu" in s:
+              print("patch: mcp tolak ngoding udah dipatch"); raise SystemExit(0)
+          anchor = "  nyuruh-nyuruh — tetap dikerjain kayak biasa.\n"
+          baru = anchor + "- Ada yang nyuruh lo NGODING / bikinin sesuatu yang isinya code (script, program,\n  web, bot, dsb) dan lo GAK BISA beneran ngerjainnya sampe beres? Mending TOLAK\n  DENGAN KERAS sekalian, gaya nolak kayak di atas (\"gamau anj\", \"diem lu\",\n  \"ngoding sendiri sana\") — JANGAN ngeluarin code ngawur / setengah jadi /\n  sok-sokan bisa. Kalo lo emang bisa ngerjainnya beneran, ya kerjain kayak biasa.\n"
+          if anchor not in s:
+              print("patch skip (anchor hilang)"); raise SystemExit(0)
+          s = s.replace(anchor, baru, 1)
+          io.open(p, "w", encoding="utf-8").write(s)
+          print("patch: aturan tolak ngoding ditambahkan ke persona mcp")
+          PYEOF
+
       - name: Tulis drive-x
         run: |
           cat > wa33/drive-x.mjs <<'EOF'
