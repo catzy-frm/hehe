@@ -208,6 +208,28 @@ jobs:
               print("patch: teks sabar udah gak ada")
           PYEOF
 
+      - name: Patch infoanime 404
+        run: |
+          python3 - <<'PYEOF'
+          import io
+          p = "wa33/fitur/info/animeinfo.js"
+          try:
+              s = io.open(p, encoding="utf-8").read()
+          except Exception as e:
+              print("patch skip (baca gagal):", e); raise SystemExit(0)
+          if ".catch(() => null)" in s:
+              print("patch: infoanime udah dipatch"); raise SystemExit(0)
+          a1 = '    const cari = await axios.get("https://myanimelist.net/anime.php?cat=anime&q="+q)'
+          b1 = a1 + '.catch(() => null)\n    if (!cari) return null'
+          a2 = '    const lihat = await axios.get(linkanime)'
+          b2 = a2 + '.catch(() => null)\n    if (!lihat) return null'
+          if a1 not in s or a2 not in s:
+              print("patch skip (anchor hilang)"); raise SystemExit(0)
+          s = s.replace(a1, b1, 1).replace(a2, b2, 1)
+          io.open(p, "w", encoding="utf-8").write(s)
+          print("patch: infoanime 404 -> gak nemu")
+          PYEOF
+
       - name: Tulis drive-x
         run: |
           cat > wa33/drive-x.mjs <<'EOF'
