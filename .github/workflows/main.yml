@@ -322,6 +322,26 @@ jobs:
           print("patch: ambang PORNO lokal nude 0.6 -> 0.85 (band tengah eskalasi visi); tanpaRouter tetap 0.6")
           PYEOF
 
+      - name: Patch antibokep db
+        run: |
+          python3 - <<'PYEOF'
+          import io
+          p = "wa33/fitur/group/antibokep.js"
+          try:
+              s = io.open(p, encoding="utf-8").read()
+          except Exception as e:
+              print("patch skip (baca gagal):", e); raise SystemExit(0)
+          if "ambangDb" in s:
+              print("patch: antibokep db udah dipatch"); raise SystemExit(0)
+          anchor = '    if (s.nude >= ambangNude || s.db >= 0.5) { console.log(`[antibokep] lokal nude=${s.nude} db=${s.db} hp=${s.hp} sexy=${s.sexy} -> PORNO`); return "PORNO" }'
+          if anchor not in s:
+              print("patch skip (anchor hilang)"); raise SystemExit(0)
+          baru = "    const ambangDb = opsi.tanpaRouter ? 0.5 : 0.9\n" + anchor.replace("s.db >= 0.5", "s.db >= ambangDb")
+          s = s.replace(anchor, baru, 1)
+          io.open(p, "w", encoding="utf-8").write(s)
+          print("patch: ambang db instan 0.5 -> 0.9 (band tengah eskalasi visi); tanpaRouter tetap 0.5")
+          PYEOF
+
       - name: Patch lanjutan mentions
         run: |
           python3 - <<'PYEOF'
