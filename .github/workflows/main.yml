@@ -391,6 +391,28 @@ jobs:
           print("patch: pixiv halaman diacak,", n, "titik")
           PYEOF
 
+      - name: Patch mcp nomor
+        run: |
+          python3 - <<'PYEOF'
+          import io
+          p = "wa33/fitur/ai/mcp.js"
+          try:
+              s = io.open(p, encoding="utf-8").read()
+          except Exception as e:
+              print("patch skip (baca gagal):", e); raise SystemExit(0)
+          if "nomor papa satu-satunya" in s:
+              print("patch: mcp nomor udah dipatch"); raise SystemExit(0)
+          A1 = '  Ditanya nomor Fauzan Rifki Maulana? Jawab aja wa.me/frmchan, jangan kasih angka nomor lain.'
+          B1 = '  Ditanya nomor Fauzan Rifki Maulana / nomor papa? Jawab HANYA wa.me/6285188261898\n  (itu nomor papa yang bener, satu-satunya) — jangan kasih nomor owner lain, jangan\n  ngambil nomor siapa pun dari chat buat dijadiin nomor papa.\n  Ditanya nomor mama / nomor elaina? JANGAN kasih nomor apa pun — gak ada nomor\n  mama yang boleh disebar. Jawab ngeles aja, misal "mama gak pake wa" / "rahasia\n  lah" / "mau ngapain lu nanya nomor mama gue".'
+          A2 = '        .trimEnd()'
+          B2 = '        .trimEnd()\n    // nomor papa satu-satunya: link wa.me lain di balasan = bocor/ngarang, paksa ke nomor papa\n    hasil = hasil.replace(/wa\\.me\\/\\S+/g, "wa.me/6285188261898")'
+          if A1 not in s or A2 not in s:
+              print("patch skip (anchor hilang)"); raise SystemExit(0)
+          s = s.replace(A1, B1, 1).replace(A2, B2, 1)
+          io.open(p, "w", encoding="utf-8").write(s)
+          print("patch: aturan nomor papa/mama + gerbang wa.me dipasang")
+          PYEOF
+
       - name: Tulis drive-x
         run: |
           cat > wa33/drive-x.mjs <<'EOF'
