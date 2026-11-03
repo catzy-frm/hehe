@@ -520,6 +520,23 @@ jobs:
           print("patch: mcp ohayo kepasang")
           PYEOF
 
+      - name: Patch mcp sapaan jepang
+        run: |
+          python3 - <<'PYEOF'
+          p = "wa33/fitur/ai/mcp.js"
+          s = open(p).read()
+          if "konn?ichi" in s:
+              print("patch: mcp sapaan jepang udah dipatch"); raise SystemExit(0)
+          a1 = 'selamat|ohai?yo+u*|bangun|tes|test|(#|'
+          a2 = 'selamat|ohai?yo+u*|bangun|tes|test)$'
+          assert s.count(a1) == 1 and s.count(a2) == 1, "anchor mcp sapaan jepang ga ketemu"
+          baru = 'konn?ichi[hw]a+|ko[nm]ban[hw]a+|oyasumi(nasai)?'
+          s = s.replace(a1, 'selamat|ohai?yo+u*|' + baru + '|bangun|tes|test|(#|')
+          s = s.replace(a2, 'selamat|ohai?yo+u*|' + baru + '|bangun|tes|test)$')
+          open(p, "w").write(s)
+          print("patch: mcp sapaan jepang kepasang")
+          PYEOF
+
       - name: Tulis drive-x
         run: |
           cat > wa33/drive-x.mjs <<'EOF'
