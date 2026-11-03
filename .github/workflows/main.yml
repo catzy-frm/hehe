@@ -455,6 +455,31 @@ jobs:
           rm -f wa33/fitur/game/games.js
           echo "games.js dihapus (fitur suit/tebak/dadu dibuang atas perintah owner)"; ls wa33/fitur/game/ || true
 
+      - name: Patch lanjutan sekali
+        run: |
+          python3 - <<'PYEOF'
+          import io
+          p = "wa33/conn.js"
+          try:
+              s = io.open(p, encoding="utf-8").read()
+          except Exception as e:
+              print("patch skip (baca gagal):", e); raise SystemExit(0)
+          if "jatahnya SEKALI" in s:
+              print("patch: lanjutan sekali udah dipatch"); raise SystemExit(0)
+          n = 0
+          for a, b in [
+              ('const catatTagKeluar = (jid, konten) => {\n    if (!jid?.endsWith("@g.us")) return\n    const disebut = [...(konten?.contextInfo?.mentionedJid || []), ...(konten?.mentions || [])]\n    for (const j of disebut) {\n        const n = nomorSaja(j)\n        if (n) tagTerakhir.set(`${jid}|${n}`, Date.now())\n    }\n    if (tagTerakhir.size > 500) {\n        const kini = Date.now()\n        for (const [k, t] of tagTerakhir) if (kini - t > JENDELA_TAG) tagTerakhir.delete(k)\n    }\n}\n', 'const catatTagKeluar = (jid, konten, opsi) => {\n    if (!jid?.endsWith("@g.us")) return\n    const disebut = [...(konten?.contextInfo?.mentionedJid || []), ...(konten?.mentions || [])]\n    // balasan langsung (ngutip pesan orang itu sambil ngetag dia) itu JAWABAN,\n    // bukan panggilan baru — jangan persenjatai ulang jatah 1 pesannya\n    const pengirimKutip = nomorSaja(opsi?.quoted?.Info?.Sender || opsi?.quoted?.sender || opsi?.quoted?.participant || "")\n    for (const j of disebut) {\n        const n = nomorSaja(j)\n        if (n && n !== pengirimKutip) tagTerakhir.set(`${jid}|${n}`, Date.now())\n    }\n    if (tagTerakhir.size > 500) {\n        const kini = Date.now()\n        for (const [k, t] of tagTerakhir) if (kini - t > JENDELA_TAG) tagTerakhir.delete(k)\n    }\n}\n'),
+              ('const kenaTagTerakhir = (m) => {\n    if (!m.isGroup) return false\n    const calon = [m.sender, m.lid, m.senderPn].map(nomorSaja).filter(Boolean)\n    return calon.some(n => {\n        const t = tagTerakhir.get(`${m.from}|${n}`)\n        return t && Date.now() - t < JENDELA_TAG\n    })\n}\n\n', 'const kenaTagTerakhir = (m) => {\n    if (!m.isGroup) return false\n    const calon = [m.sender, m.lid, m.senderPn].map(nomorSaja).filter(Boolean)\n    return calon.some(n => {\n        const k = `${m.from}|${n}`\n        const t = tagTerakhir.get(k)\n        // jatahnya SEKALI: pesan pertama sesudah kena tag langsung dijawab,\n        // habis itu catatannya dibuang — pesan kedua dst gak di-route lagi\n        if (t && Date.now() - t < JENDELA_TAG) { tagTerakhir.delete(k); return true }\n        return false\n    })\n}\n\n'),
+              ('try { catatTagKeluar(jid, konten) } catch {}', 'try { catatTagKeluar(jid, konten, opsi) } catch {}'),
+          ]:
+              if a in s:
+                  s = s.replace(a, b, 1); n += 1
+          if n != 3:
+              print("patch skip (anchor kurang):", n, "dari 3"); raise SystemExit(0)
+          io.open(p, "w", encoding="utf-8").write(s)
+          print("patch: tag-lanjutan jadi sekali pakai + balasan langsung gak persenjatai ulang")
+          PYEOF
+
       - name: Tulis drive-x
         run: |
           cat > wa33/drive-x.mjs <<'EOF'
