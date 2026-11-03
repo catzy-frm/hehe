@@ -537,6 +537,36 @@ jobs:
           print("patch: mcp sapaan jepang kepasang")
           PYEOF
 
+      - name: Patch antibokep sinyal
+        run: |
+          python3 - <<'PYEOF'
+          p = "wa33/fitur/group/antibokep.js"
+          s = open(p).read()
+          if "s.keras" in s:
+              print("patch: antibokep sinyal udah dipatch"); raise SystemExit(0)
+          lama = """    const ambangNude = opsi.tanpaRouter ? 0.6 : 0.85
+    const ambangDb = opsi.tanpaRouter ? 0.5 : 0.9
+    if (s.nude >= ambangNude || s.db >= ambangDb) { console.log(`[antibokep] lokal nude=${s.nude} db=${s.db} hp=${s.hp} sexy=${s.sexy} -> PORNO`); return "PORNO" }
+    if (s.nude < 0.35 && s.db < 0.2 && s.hp < 0.35 && (s.sexy ?? 0) < 0.6) { console.log(`[antibokep] lokal nude=${s.nude} db=${s.db} hp=${s.hp} sexy=${s.sexy} -> AMAN`); return "AMAN" }
+    if (opsi.tanpaRouter) { console.log(`[antibokep] lokal abu-abu nude=${s.nude} db=${s.db} hp=${s.hp} sexy=${s.sexy} -> tanpa router (GAGAL)`); return "GAGAL" }
+    console.log(`[antibokep] lokal abu-abu nude=${s.nude} db=${s.db} hp=${s.hp} sexy=${s.sexy} -> eskalasi visi`)"""
+          assert s.count(lama) == 1, "anchor antibokep sinyal ga ketemu"
+          baru = """    const skor = `nude=${s.nude} keras=${s.keras} fb=${s.fb} db=${s.db} dr=${s.dr} hp=${s.hp} sexy=${s.sexy}`
+    // cepet + akurat: sinyal yg gak pernah ngaco divonis instan di tempat.
+    // keras (kelamin/pantat) gak bisa kesulut dada cowok; db cuma dipercaya pas
+    // gambarnya emang gambar (dr tinggi) — di foto asli db ngaco (kasus kucing
+    // 2026-11-02: explicit 0.745 di foto asli, dr 0.001) jadi foto db-tinggi ke
+    // visi. fb (dada) di bawah 0.85 juga ke visi (visi ngecualikan cowok
+    // bertelanjang dada). Server lama (field baru kosong) -> semua abu-abu.
+    if ((s.keras ?? 0) >= 0.6 || (s.fb ?? 0) >= 0.85 || (s.db >= 0.5 && (s.dr ?? 0) >= 0.5)) { console.log(`[antibokep] lokal ${skor} -> PORNO`); return "PORNO" }
+    if (s.nude < 0.35 && s.db < 0.2 && s.hp < 0.35 && (s.sexy ?? 0) < 0.6) { console.log(`[antibokep] lokal ${skor} -> AMAN`); return "AMAN" }
+    if (opsi.tanpaRouter) { console.log(`[antibokep] lokal abu-abu ${skor} -> tanpa router (GAGAL)`); return "GAGAL" }
+    console.log(`[antibokep] lokal abu-abu ${skor} -> eskalasi visi`)"""
+          s = s.replace(lama, baru)
+          open(p, "w").write(s)
+          print("patch: antibokep sinyal kepasang")
+          PYEOF
+
       - name: Tulis drive-x
         run: |
           cat > wa33/drive-x.mjs <<'EOF'
@@ -622,6 +652,35 @@ jobs:
             tar -xzf /tmp/antibokep-ai.tar.gz -C /home/runner
             echo "✅ antibokep-ai direstore"
           fi
+
+      - name: Patch server antibokep
+        run: |
+          python3 - <<'PYEOF'
+          import os, sys
+          p = "/home/runner/antibokep-ai/server.py"
+          if not os.path.exists(p):
+              print("patch: server antibokep ga ada, skip"); sys.exit(0)
+          s = open(p).read()
+          if "KERAS" in s:
+              print("patch: server antibokep udah dipatch"); sys.exit(0)
+          a1 = """EXPOSED = {"FEMALE_GENITALIA_EXPOSED", "MALE_GENITALIA_EXPOSED",
+                     "FEMALE_BREAST_EXPOSED", "ANUS_EXPOSED", "BUTTOCKS_EXPOSED"}"""
+          b1 = a1 + """
+          KERAS = {"FEMALE_GENITALIA_EXPOSED", "MALE_GENITALIA_EXPOSED",
+                   "ANUS_EXPOSED", "BUTTOCKS_EXPOSED"}"""
+          a2 = """        nude = max([d["score"] for d in dets if d["class"] in EXPOSED], default=0.0)"""
+          b2 = a2 + """
+                  keras = max([d["score"] for d in dets if d["class"] in KERAS], default=0.0)
+                  fb = max([d["score"] for d in dets if d["class"] == "FEMALE_BREAST_EXPOSED"], default=0.0)"""
+          a3 = """    return {"nude": round(float(nude), 3), "db": round(dbe, 3), "hp": round(hp, 3), "sexy": round(sexy, 3)}"""
+          b3 = """    dr = float(ns.get("drawing", 0))
+              return {"nude": round(float(nude), 3), "db": round(dbe, 3), "hp": round(hp, 3), "sexy": round(sexy, 3), "keras": round(float(keras), 3), "fb": round(float(fb), 3), "dr": round(dr, 3)}"""
+          for a in (a1, a2, a3):
+              assert s.count(a) == 1, "anchor server antibokep ga ketemu"
+          s = s.replace(a1, b1).replace(a2, b2).replace(a3, b3)
+          open(p, "w").write(s)
+          print("patch: server antibokep kepasang")
+          PYEOF
 
       - name: Restore venv antibokep
         id: cache-abv
