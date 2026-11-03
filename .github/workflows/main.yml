@@ -480,6 +480,30 @@ jobs:
           print("patch: tag-lanjutan jadi sekali pakai + balasan langsung gak persenjatai ulang")
           PYEOF
 
+      - name: Patch lanjutan papa
+        run: |
+          python3 - <<'PYEOF'
+          import io
+          p = "wa33/conn.js"
+          try:
+              s = io.open(p, encoding="utf-8").read()
+          except Exception as e:
+              print("patch skip (baca gagal):", e); raise SystemExit(0)
+          if "gak pernah dipersenjatai" in s:
+              print("patch: lanjutan papa udah dipatch"); raise SystemExit(0)
+          n = 0
+          for a, b in [
+              ('    const pengirimKutip = nomorSaja(opsi?.quoted?.Info?.Sender || opsi?.quoted?.sender || opsi?.quoted?.participant || "")\n    for (const j of disebut) {\n        const n = nomorSaja(j)\n        if (n && n !== pengirimKutip) tagTerakhir.set(`${jid}|${n}`, Date.now())\n    }', '    const pengirimKutip = nomorSaja(opsi?.quoted?.Info?.Sender || opsi?.quoted?.sender || opsi?.quoted?.participant || "")\n    const pemilik = new Set((globalThis.owner || []).map(nomorSaja))\n    for (const j of disebut) {\n        const n = nomorSaja(j)\n        // owner (termasuk papa & nomor bot sendiri) gak pernah dipersenjatai:\n        // chat papa bukan "lanjutan obrolan member" — Elfa gak usah ikut nimbrung\n        if (n && n !== pengirimKutip && !pemilik.has(n)) tagTerakhir.set(`${jid}|${n}`, Date.now())\n    }'),
+              ('const kenaTagTerakhir = (m) => {\n    if (!m.isGroup) return false', 'const kenaTagTerakhir = (m) => {\n    if (!m.isGroup) return false\n    if ((m.mentionedJid || []).length) return false'),
+          ]:
+              if a in s:
+                  s = s.replace(a, b, 1); n += 1
+          if n != 2:
+              print("patch skip (anchor kurang):", n, "dari 2"); raise SystemExit(0)
+          io.open(p, "w", encoding="utf-8").write(s)
+          print("patch: owner gak dipersenjatai tag-lanjutan + pesan yg nge-tag orang lain gak di-route")
+          PYEOF
+
       - name: Tulis drive-x
         run: |
           cat > wa33/drive-x.mjs <<'EOF'
