@@ -504,6 +504,22 @@ jobs:
           print("patch: owner gak dipersenjatai tag-lanjutan + pesan yg nge-tag orang lain gak di-route")
           PYEOF
 
+      - name: Patch mcp ohayo
+        run: |
+          python3 - <<'PYEOF'
+          p = "wa33/fitur/ai/mcp.js"
+          s = open(p).read()
+          if "ohai?yo" in s:
+              print("patch: mcp ohayo udah dipatch"); raise SystemExit(0)
+          a1 = 'sepi|selamat|bangun|tes|test|(#|'
+          a2 = 'sepi|selamat|bangun|tes|test)$'
+          assert s.count(a1) == 1 and s.count(a2) == 1, "anchor mcp ohayo ga ketemu"
+          s = s.replace(a1, 'sepi|selamat|ohai?yo+u*|bangun|tes|test|(#|')
+          s = s.replace(a2, 'sepi|selamat|ohai?yo+u*|bangun|tes|test)$')
+          open(p, "w").write(s)
+          print("patch: mcp ohayo kepasang")
+          PYEOF
+
       - name: Tulis drive-x
         run: |
           cat > wa33/drive-x.mjs <<'EOF'
