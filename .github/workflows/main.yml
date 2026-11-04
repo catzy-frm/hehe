@@ -545,23 +545,23 @@ jobs:
           if "s.keras" in s:
               print("patch: antibokep sinyal udah dipatch"); raise SystemExit(0)
           lama = """    const ambangNude = opsi.tanpaRouter ? 0.6 : 0.85
-    const ambangDb = opsi.tanpaRouter ? 0.5 : 0.9
-    if (s.nude >= ambangNude || s.db >= ambangDb) { console.log(`[antibokep] lokal nude=${s.nude} db=${s.db} hp=${s.hp} sexy=${s.sexy} -> PORNO`); return "PORNO" }
-    if (s.nude < 0.35 && s.db < 0.2 && s.hp < 0.35 && (s.sexy ?? 0) < 0.6) { console.log(`[antibokep] lokal nude=${s.nude} db=${s.db} hp=${s.hp} sexy=${s.sexy} -> AMAN`); return "AMAN" }
-    if (opsi.tanpaRouter) { console.log(`[antibokep] lokal abu-abu nude=${s.nude} db=${s.db} hp=${s.hp} sexy=${s.sexy} -> tanpa router (GAGAL)`); return "GAGAL" }
-    console.log(`[antibokep] lokal abu-abu nude=${s.nude} db=${s.db} hp=${s.hp} sexy=${s.sexy} -> eskalasi visi`)"""
+              const ambangDb = opsi.tanpaRouter ? 0.5 : 0.9
+              if (s.nude >= ambangNude || s.db >= ambangDb) { console.log(`[antibokep] lokal nude=${s.nude} db=${s.db} hp=${s.hp} sexy=${s.sexy} -> PORNO`); return "PORNO" }
+              if (s.nude < 0.35 && s.db < 0.2 && s.hp < 0.35 && (s.sexy ?? 0) < 0.6) { console.log(`[antibokep] lokal nude=${s.nude} db=${s.db} hp=${s.hp} sexy=${s.sexy} -> AMAN`); return "AMAN" }
+              if (opsi.tanpaRouter) { console.log(`[antibokep] lokal abu-abu nude=${s.nude} db=${s.db} hp=${s.hp} sexy=${s.sexy} -> tanpa router (GAGAL)`); return "GAGAL" }
+              console.log(`[antibokep] lokal abu-abu nude=${s.nude} db=${s.db} hp=${s.hp} sexy=${s.sexy} -> eskalasi visi`)"""
           assert s.count(lama) == 1, "anchor antibokep sinyal ga ketemu"
           baru = """    const skor = `nude=${s.nude} keras=${s.keras} fb=${s.fb} db=${s.db} dr=${s.dr} hp=${s.hp} sexy=${s.sexy}`
-    // cepet + akurat: sinyal yg gak pernah ngaco divonis instan di tempat.
-    // keras (kelamin/pantat) gak bisa kesulut dada cowok; db cuma dipercaya pas
-    // gambarnya emang gambar (dr tinggi) — di foto asli db ngaco (kasus kucing
-    // 2026-11-02: explicit 0.745 di foto asli, dr 0.001) jadi foto db-tinggi ke
-    // visi. fb (dada) di bawah 0.85 juga ke visi (visi ngecualikan cowok
-    // bertelanjang dada). Server lama (field baru kosong) -> semua abu-abu.
-    if ((s.keras ?? 0) >= 0.6 || (s.fb ?? 0) >= 0.85 || (s.db >= 0.5 && (s.dr ?? 0) >= 0.5)) { console.log(`[antibokep] lokal ${skor} -> PORNO`); return "PORNO" }
-    if (s.nude < 0.35 && s.db < 0.2 && s.hp < 0.35 && (s.sexy ?? 0) < 0.6) { console.log(`[antibokep] lokal ${skor} -> AMAN`); return "AMAN" }
-    if (opsi.tanpaRouter) { console.log(`[antibokep] lokal abu-abu ${skor} -> tanpa router (GAGAL)`); return "GAGAL" }
-    console.log(`[antibokep] lokal abu-abu ${skor} -> eskalasi visi`)"""
+              // cepet + akurat: sinyal yg gak pernah ngaco divonis instan di tempat.
+              // keras (kelamin/pantat) gak bisa kesulut dada cowok; db cuma dipercaya pas
+              // gambarnya emang gambar (dr tinggi) — di foto asli db ngaco (kasus kucing
+              // 2026-11-02: explicit 0.745 di foto asli, dr 0.001) jadi foto db-tinggi ke
+              // visi. fb (dada) di bawah 0.85 juga ke visi (visi ngecualikan cowok
+              // bertelanjang dada). Server lama (field baru kosong) -> semua abu-abu.
+              if ((s.keras ?? 0) >= 0.6 || (s.fb ?? 0) >= 0.85 || (s.db >= 0.5 && (s.dr ?? 0) >= 0.5)) { console.log(`[antibokep] lokal ${skor} -> PORNO`); return "PORNO" }
+              if (s.nude < 0.35 && s.db < 0.2 && s.hp < 0.35 && (s.sexy ?? 0) < 0.6) { console.log(`[antibokep] lokal ${skor} -> AMAN`); return "AMAN" }
+              if (opsi.tanpaRouter) { console.log(`[antibokep] lokal abu-abu ${skor} -> tanpa router (GAGAL)`); return "GAGAL" }
+              console.log(`[antibokep] lokal abu-abu ${skor} -> eskalasi visi`)"""
           s = s.replace(lama, baru)
           open(p, "w").write(s)
           print("patch: antibokep sinyal kepasang")
