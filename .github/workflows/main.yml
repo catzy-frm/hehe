@@ -567,6 +567,40 @@ jobs:
           print("patch: antibokep sinyal kepasang")
           PYEOF
 
+      - name: Patch antibokep batas gerbang
+        run: |
+          python3 - <<'PYEOF'
+          p = "wa33/fitur/group/antibokep.js"
+          s = open(p).read()
+          if "batasVisi" in s:
+              print("patch: antibokep batas gerbang udah dipatch"); raise SystemExit(0)
+          a1 = """const vonisVisi = async uri => {
+              const ctl = new AbortController()
+              const timer = setTimeout(() => ctl.abort(), 45000)"""
+          b1 = """const vonisVisi = async (uri, batas = 45000) => {
+              const ctl = new AbortController()
+              const timer = setTimeout(() => ctl.abort(), batas)"""
+          a2 = """    if (process.env.ANTIBOKEP_LOCAL === "off") return opsi.tanpaRouter ? "GAGAL" : vonisVisi(uri)
+              const s = await vonisLokal(uri)
+              if (!s) return opsi.tanpaRouter ? "GAGAL" : vonisVisi(uri)"""
+          b2 = """    if (process.env.ANTIBOKEP_LOCAL === "off") return opsi.tanpaRouter ? "GAGAL" : vonisVisi(uri, opsi.batasVisi)
+              const s = await vonisLokal(uri)
+              if (!s) return opsi.tanpaRouter ? "GAGAL" : vonisVisi(uri, opsi.batasVisi)"""
+          a3 = """    console.log(`[antibokep] lokal abu-abu ${skor} -> eskalasi visi`)
+              return vonisVisi(uri)"""
+          b3 = """    console.log(`[antibokep] lokal abu-abu ${skor} -> eskalasi visi`)
+              return vonisVisi(uri, opsi.batasVisi)"""
+          a4 = """        const {uri} = await kompresi(b)
+                  return await vonisFinal(uri, opsi)"""
+          b4 = """        const {uri} = await kompresi(b)
+                  return await vonisFinal(uri, {...opsi, batasVisi: opsi.batasVisi ?? 12000})"""
+          for a in (a1, a2, a3, a4):
+              assert s.count(a) == 1, "anchor antibokep batas gerbang ga ketemu"
+          s = s.replace(a1, b1).replace(a2, b2).replace(a3, b3).replace(a4, b4)
+          open(p, "w").write(s)
+          print("patch: antibokep batas gerbang kepasang")
+          PYEOF
+
       - name: Tulis drive-x
         run: |
           cat > wa33/drive-x.mjs <<'EOF'
